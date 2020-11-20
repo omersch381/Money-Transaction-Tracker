@@ -22,32 +22,35 @@ contract ProfileContract{
         address[] approvers;
         bool isApproved;
     }
-    
+
+    struct Friend{
+        address friendAddress;
+        string friendName;
+    }
+
     Preferences preferences;
     mapping(address => string) friendsName;
     address owner;
     address[] private friends;
     Exchange[] private exchanges;
     address[] private groups;
-    string[] private actionsLog;
+    // string[] private actionsLog;
     
     constructor() public {
         owner = msg.sender;
     }
     
-    
-    // ActionsLog section
-    function getActionsLog() public restricted view returns(string[] memory){
+
+    // Status
+    function getMyStatus() public restricted view returns (string[] memory myStatus){
     }
+    
+    // // ActionsLog section
+    // function getActionsLog() public restricted view returns(string[] memory){
+    // }
 
 
     // Groups section
-    
-    function joinGroup(address group) public restricted{
-    }
-    
-    function leaveGroup() public restricted{
-    }
     
     function createGroup() public restricted{
     }
@@ -77,11 +80,12 @@ contract ProfileContract{
     function removeFriend(address friend) public restricted isAFriend(friend) {
     }
 
+    // for testing only
     function removeAllFriends() public restricted {
     }
 
-    function getFriends() public view restricted returns (address[] memory) {
-        return friends;
+    function getFriends() public view restricted returns (Friend[] memory friends) {
+        // will return { 0x123456: "Dror" }
     }
 
     function getFriendName(address friend) public view restricted returns (string memory name) {
