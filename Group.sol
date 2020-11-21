@@ -1,6 +1,7 @@
 pragma solidity >=0.4.22 <0.7.0;
 
 import "./Utils";
+import "./BinaryContract";
 
 contract Group {
 
@@ -55,6 +56,7 @@ contract Group {
     Message[] groupChat;
     GroupVote[] groupVotes; //which contains all group votes (might be used even if group is dictatorship)
     GroupMember[] members;
+    BinaryContract[] groupBinaryContracts;
     
     constructor(GroupType groupType) public {
         // if type is Democratic then manager is null
