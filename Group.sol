@@ -55,6 +55,7 @@ contract Group {
     Message[] groupChat;
     GroupVote[] groupVotes; //which contains all group votes (might be used even if group is dictatorship)
     GroupMember[] members;
+    uint expirationDate;
     
     constructor(GroupType groupType) public {
         // if type is Democratic then manager is null
@@ -106,6 +107,13 @@ contract Group {
     function getMyStatus() public restricted returns (string[] memory status){
         // Would run on the TransactionsLog if the date is not recent
         // change the string array to a better option
+    }
+
+    // Termination section
+    function checkAndHandleExpiration() public restricted {
+        // if expired
+        // runs our algorithm
+        // creates BinaryGroups accordingly
     }
     
     modifier restricted() {
