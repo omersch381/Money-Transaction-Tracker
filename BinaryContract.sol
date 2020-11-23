@@ -1,6 +1,5 @@
 pragma solidity >=0.4.22 <0.7.0;
 
-//TODO
 contract BinaryContract{
 
     struct Transaction {
@@ -8,22 +7,19 @@ contract BinaryContract{
         address to;
         uint amount;
         uint date;
-    } // this is only needed if we're keeping a transaction log inside a bin contract as well
+    }
 
     struct ContractDebt{
         address debtor;
+        string debtorName;
         uint amountOwned;
     }
 
-
     address playerOne;
-    address playerTwo;    
+    address playerTwo;
     ContractDebt currentDebt;
 
-    Transaction[] binContractTransactionsLog; 
-    /* not sure if needed because the transactions are already saved in the 
-    group contract and a two person group i.e binary contract is just a two person group contract with a log already being made.
-    My question is: do we need to differentiate between a binary contract and a two person group? */ 
+    Transaction[] binContractTransactionsLog;
 
     constructor() public{
         //TODO
@@ -33,7 +29,7 @@ contract BinaryContract{
         /*  recieves the end result of a transaction i.e (Omer,20) is equals to Omer inserted 20 Shekels into the contract
             meaning Dror now ows 20 shekels. */
 
-        /* 
+        /*
             if debtor != inerter:
                 amountOwned += amount
             else:
@@ -53,10 +49,15 @@ contract BinaryContract{
         //updates the currentDebt.debtor to be newDebtor
     }
 
-    function getCurrentDebtor public view returns(address){ 
+    function getCurrentDebtorAddress public view returns(address){
         //return currentDebt.debtor
     }
-    function getCurrentDebt public view returns(uint){
+
+    function getCurrentDebtorName public view returns(string){
+        //return currentDebt.debtor name
+    }
+
+    function getCurrentDebtAmount public view returns(uint){
         //return currentDebt.amountOwned
     }
 }

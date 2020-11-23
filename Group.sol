@@ -23,7 +23,7 @@ contract Group {
         uint date;
         // bool wasPaid;
     }
-    
+
     struct GroupVote {
         Vote[] groupVote; // omer - yes, Dror no, ...
         uint positiveAnswers; // 3
@@ -31,13 +31,13 @@ contract Group {
         string topic; //buying pizza
         string optionalDescription; // buying pizza and stuff...
     }
-    
+
     struct Vote {
         address voter; //0x1234
         string name; // Omer
         VoteType answer; // true
     }
-    
+
     struct Message{
         address publisherAddress;
         string publisherName;
@@ -56,13 +56,12 @@ contract Group {
     Message[] groupChat;
     GroupVote[] groupVotes; //which contains all group votes (might be used even if group is dictatorship)
     GroupMember[] members;
-    BinaryContract[] groupBinaryContracts;
     uint expirationDate;
-    
+
     constructor(GroupType groupType) public {
         // if type is Democratic then manager is null
     }
-    
+
     // Members section
     function addMemberToGroup() public restricted {
         if (groupType == GroupType.Democratic) {
@@ -73,34 +72,30 @@ contract Group {
             // please enter an address...
         }
     }
-    
+
     function getMembers() public restricted view returns (GroupMember[] memory members) {
     }
-    
-    
+
     // TransactionsLog section
     function addTransaction() public restricted {
         // Add voters
         // vote of each related member
     }
-    
+
     function removeTransaction() public restricted{
         // If transaction was paid or if 100% democratic agree...
     }
-    
-    
+
     // Chat section
     function sendMsgToGroup(string memory message) public restricted {
     }
-    
-    
+
     // Votes section
     function addGroupVote() public restricted {
         // Adding restrictions to every group vote
         // Remember the positiveAnswers var
     }
-    
-    
+
     // Utils
     function getName(address friend) public restricted returns (string memory) {
         return Utils.getName(members, friend);
@@ -117,7 +112,7 @@ contract Group {
         // runs our algorithm
         // creates BinaryGroups accordingly
     }
-    
+
     modifier restricted() {
         bool isGroupMember = false;
         for (uint i=0; i<members.length; i++) {

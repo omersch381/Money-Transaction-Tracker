@@ -33,44 +33,38 @@ contract ProfileContract{
     address owner;
     address[] private friends;
     Exchange[] private exchanges;
-    address[] private groups;
+    address[] private contracts; // == [GroupsContract(s), BinaryContract(s)]
     // string[] private actionsLog;
-    
+
     constructor() public {
         owner = msg.sender;
     }
-    
 
     // Status
     function getMyStatus() public restricted view returns (string[] memory myStatus){
     }
-    
+
     // // ActionsLog section
     // function getActionsLog() public restricted view returns(string[] memory){
     // }
 
-
     // Groups section
-    
     function createGroup() public restricted{
     }
-    
+
     function getGroups() public restricted view returns (address[] memory){
     }
-    
 
     // Exchanges section
     //      I think that "getExchange" method would be unnecessary
-    
     function removeExchange(Exchange memory exchange) public restricted {
     }
-    
+
     function getAllExchanges() public restricted view returns (Exchange[] memory){
     }
 
 
     // Friends functions
-    
     function addFriendRequest(address friend) public restricted {
     }
 
@@ -91,7 +85,6 @@ contract ProfileContract{
     function getFriendName(address friend) public view restricted returns (string memory name) {
         return "TODO";
     }
-
 
      modifier restricted(){
         require(msg.sender == owner);

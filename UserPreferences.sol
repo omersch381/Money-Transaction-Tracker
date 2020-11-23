@@ -8,12 +8,9 @@ pragma solidity >=0.4.22 <0.7.0;
          */
 
         bool wouldLikeToReceiveDebtRotationOffers;
-        
-        
+
         // Is not null if wouldLikeToReceiveDebtRotationOffers is true.
         MessageReceivingFrequency frequency;
     }
-    
-    enum MessageReceivingFrequency { Daily, Weekly, OnContractTermination }
 
-    
+    enum MessageReceivingFrequency { Daily, Weekly, OnContractTermination }
