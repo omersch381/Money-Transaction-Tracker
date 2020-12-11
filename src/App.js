@@ -1,20 +1,13 @@
 import React, { Component } from "react";
 import "./App.css";
 import web3 from "./web3";
-import profileAbi from "./profile";
+import profileAbi from "./ethereum/solidity/profile";
 
-const address = "0x42F443c1bb0F7386870E736193e8cdB5b5fA1a4D";
+const address = "0xa2Afe9750A328f27819DE513275466519A1Cb84f";
 
 const profile = new web3.eth.Contract(profileAbi, address);
 
 class Test extends Component {
-  //   state = {
-  //     manager: "",
-  //     players: [],
-  //     balance: "",
-  //     value: "",
-  //     message: "",
-  //   };
 
   state = {
     friendsAddress: "",
@@ -25,10 +18,10 @@ class Test extends Component {
     // const players = await lottery.methods.getPlayers().call();
     // const balance = await web3.eth.getBalance(lottery.options.address);
 
-    let ethereum = window.ethereum;
-    if (typeof ethereum !== "undefined") {
-      await ethereum.enable();
-    }
+    // let ethereum = window.ethereum;
+    // if (typeof ethereum !== "undefined") {
+    //   await ethereum.enable();
+    // }
 
     // this.setState({ manager, players, balance });
   }
