@@ -70,6 +70,10 @@ contract ProfileContract{
         //TODO
     }
 
+    function removeAllExchanges() public{
+        delete exchanges;
+    }
+
     function removeExchange(uint index) public {
         if (index >= exchanges.length) return;
 
@@ -81,6 +85,8 @@ contract ProfileContract{
         }
 
         // exchanges.pop();
+        delete exchanges[exchanges.length - 1];
+        exchanges.length--;
     }
 
     function getExchangeFromExchangeId(uint exchangeId) public view returns (Exchange memory){
@@ -131,12 +137,15 @@ contract ProfileContract{
         // return newExchange;
     }
 
+    // function setExchanges(Exchange[] memory providedExchanges) public {
+    //     exchanges = providedExchanges;
+    // }
+
     // I run for my own ProfileContract
     function addExchange(address source, address destination, string memory optionalDescription, ExchangeType exType, ExchangePurpose purpose, address[] memory approvers, bool isApproved) public returns (Exchange memory) {
 
         // source == address(0), destination == givenDestination
         addExchangeNotRestricted(source, destination, optionalDescription,exType,purpose,approvers,isApproved);
-        // return addExchangeNotRestricted(source, destination, optionalDescription,exType,purpose,approvers,isApproved);
     }
 
     // Friends functions
@@ -150,7 +159,6 @@ contract ProfileContract{
         // Note: the 'new address[](0)' means we send 0 approvers for a friend request.
 
         addExchangeNotRestricted(source, address(0), "addFriendRequest", ExchangeType.Request, ExchangePurpose.AddFriend, new address[](0), false);
-        // return addExchangeNotRestricted(source, address(0), "addFriendRequest", ExchangeType.Request, ExchangePurpose.AddFriend, new address[](0), false);
     }
 
     // I run for my own ProfileContract
@@ -158,33 +166,34 @@ contract ProfileContract{
 
         // addExchange(source=address(0), destination=givenDestination,...)
         addExchange(address(0), destination, "addFriendRequest", ExchangeType.Request, ExchangePurpose.AddFriend, new address[](0), false);
-        // return addExchange(address(0), destination, "addFriendRequest", ExchangeType.Request, ExchangePurpose.AddFriend, new address[](0), false);
     }
 
     // I run for my own ProfileContract
-    // function confirmFriendRequest(uint friendExchangeId) public restricted{
-    //     Exchange memory exchangeToConfirm = getExchangeFromExchangeId(friendExchangeId);
-    //     friends.push(exchangeToConfirm.exchangeDetails.source);
-    //     removeExchange(getExchangeIndexFromExchangeId(friendExchangeId));
-    // }
+    function confirmFriendRequest(uint friendExchangeIndex) public{
+        Exchange memory exchangeToConfirm = exchanges[friendExchangeIndex];
+        friends.push(exchangeToConfirm.exchangeDetails.source);
+        removeExchange(friendExchangeIndex);
+    }
 
     // I run from other's ProfileContract
-    // function confirmFriendRequestNotRestricted(address source) public returns (Exchange memory){
-    //     Exchange memory exchangeToConfirm = getExchangeFromExchangeId(friendExchangeId);
-    //     friends.push(exchangeToConfirm.exchangeDetails.source);
-    //     removeExchange(getExchangeIndexFromExchangeId(friendExchangeId));
-    // }
+    function confirmFriendRequestNotRestricted(uint friendExchangeIndex) public {
+        Exchange memory exchangeToConfirm = exchanges[friendExchangeIndex];
+        friends.push(exchangeToConfirm.exchangeDetails.destination);
+        friends.push(exchangeToConfirm.exchangeDetails.source);
+        removeExchange(friendExchangeIndex);
+    }
 
     // function removeFriend(address friend) public restricted isAFriend(friend) {
     // }
 
-    // // for testing only
-    // function removeAllFriends() public restricted {
-    // }
+    // for testing only
+    function removeAllFriends() public {
+        delete friends;
+    }
 
-    // function getFriends() public view restricted returns (Friend[] memory friends) {
-    //     // will return { 0x123456: "Dror" }
-    // }
+    function getFriends() public view returns (address[] memory) {
+        return friends;
+    }
 
     // function getFriendName(address friend) public view restricted returns (string memory name) {
     //     return "TODO";
