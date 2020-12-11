@@ -1,0 +1,240 @@
+import web3 from "./web3";
+
+const address = "0x38b4D2E7D519Cf33c30dCA7Cfe8202689762d9fC";
+const abi = [
+  {
+    constant: true,
+    inputs: [],
+    name: "getAllExchanges",
+    outputs: [
+      {
+        components: [
+          {
+            components: [
+              { name: "exchangeId", type: "uint256" },
+              { name: "source", type: "address" },
+              { name: "destination", type: "address" },
+              { name: "optionalDescription", type: "string" },
+              { name: "exchangeType", type: "uint8" },
+              { name: "creationDate", type: "uint256" },
+            ],
+            name: "exchangeDetails",
+            type: "tuple",
+          },
+          { name: "exchangePurpose", type: "uint8" },
+          { name: "approvers", type: "address[]" },
+          { name: "isApproved", type: "bool" },
+        ],
+        name: "",
+        type: "tuple[]",
+      },
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [],
+    name: "getExchangeUniqueId",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "source", type: "address" },
+      { name: "destination", type: "address" },
+      { name: "optionalDescription", type: "string" },
+      { name: "exType", type: "uint8" },
+      { name: "purpose", type: "uint8" },
+      { name: "approvers", type: "address[]" },
+      { name: "isApproved", type: "bool" },
+    ],
+    name: "addExchange",
+    outputs: [
+      {
+        components: [
+          {
+            components: [
+              { name: "exchangeId", type: "uint256" },
+              { name: "source", type: "address" },
+              { name: "destination", type: "address" },
+              { name: "optionalDescription", type: "string" },
+              { name: "exchangeType", type: "uint8" },
+              { name: "creationDate", type: "uint256" },
+            ],
+            name: "exchangeDetails",
+            type: "tuple",
+          },
+          { name: "exchangePurpose", type: "uint8" },
+          { name: "approvers", type: "address[]" },
+          { name: "isApproved", type: "bool" },
+        ],
+        name: "",
+        type: "tuple",
+      },
+    ],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    constant: true,
+    inputs: [{ name: "exchangeId", type: "uint256" }],
+    name: "getExchangeIndexFromExchangeId",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "source", type: "address" },
+      { name: "destination", type: "address" },
+      { name: "optionalDescription", type: "string" },
+      { name: "exType", type: "uint8" },
+      { name: "purpose", type: "uint8" },
+      { name: "approvers", type: "address[]" },
+      { name: "isApproved", type: "bool" },
+    ],
+    name: "addExchangeNotRestricted",
+    outputs: [
+      {
+        components: [
+          {
+            components: [
+              { name: "exchangeId", type: "uint256" },
+              { name: "source", type: "address" },
+              { name: "destination", type: "address" },
+              { name: "optionalDescription", type: "string" },
+              { name: "exchangeType", type: "uint8" },
+              { name: "creationDate", type: "uint256" },
+            ],
+            name: "exchangeDetails",
+            type: "tuple",
+          },
+          { name: "exchangePurpose", type: "uint8" },
+          { name: "approvers", type: "address[]" },
+          { name: "isApproved", type: "bool" },
+        ],
+        name: "",
+        type: "tuple",
+      },
+    ],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [{ name: "destination", type: "address" }],
+    name: "addFriendRequest",
+    outputs: [
+      {
+        components: [
+          {
+            components: [
+              { name: "exchangeId", type: "uint256" },
+              { name: "source", type: "address" },
+              { name: "destination", type: "address" },
+              { name: "optionalDescription", type: "string" },
+              { name: "exchangeType", type: "uint8" },
+              { name: "creationDate", type: "uint256" },
+            ],
+            name: "exchangeDetails",
+            type: "tuple",
+          },
+          { name: "exchangePurpose", type: "uint8" },
+          { name: "approvers", type: "address[]" },
+          { name: "isApproved", type: "bool" },
+        ],
+        name: "",
+        type: "tuple",
+      },
+    ],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [{ name: "index", type: "uint256" }],
+    name: "removeExchange",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [{ name: "source", type: "address" }],
+    name: "addFriendRequestNotRestricted",
+    outputs: [
+      {
+        components: [
+          {
+            components: [
+              { name: "exchangeId", type: "uint256" },
+              { name: "source", type: "address" },
+              { name: "destination", type: "address" },
+              { name: "optionalDescription", type: "string" },
+              { name: "exchangeType", type: "uint8" },
+              { name: "creationDate", type: "uint256" },
+            ],
+            name: "exchangeDetails",
+            type: "tuple",
+          },
+          { name: "exchangePurpose", type: "uint8" },
+          { name: "approvers", type: "address[]" },
+          { name: "isApproved", type: "bool" },
+        ],
+        name: "",
+        type: "tuple",
+      },
+    ],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    constant: true,
+    inputs: [{ name: "exchangeId", type: "uint256" }],
+    name: "getExchangeFromExchangeId",
+    outputs: [
+      {
+        components: [
+          {
+            components: [
+              { name: "exchangeId", type: "uint256" },
+              { name: "source", type: "address" },
+              { name: "destination", type: "address" },
+              { name: "optionalDescription", type: "string" },
+              { name: "exchangeType", type: "uint8" },
+              { name: "creationDate", type: "uint256" },
+            ],
+            name: "exchangeDetails",
+            type: "tuple",
+          },
+          { name: "exchangePurpose", type: "uint8" },
+          { name: "approvers", type: "address[]" },
+          { name: "isApproved", type: "bool" },
+        ],
+        name: "",
+        type: "tuple",
+      },
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "constructor",
+  },
+];
