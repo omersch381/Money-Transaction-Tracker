@@ -156,16 +156,22 @@ class Test extends Component {
     // Getting accounts list
     const accounts = await web3.eth.getAccounts();
 
-    let myExchanges = await profile.methods.getAllExchanges().call();
+    // let myExchanges = await profile.methods.getAllExchanges().call();
 
     // Sending exchanges to setExchanges:
     await profile.methods
-      .setExchanges(myExchanges)
+      .removeAllExchanges()
+      .send({ from: accounts[0], gas: 1000000 });
+    await profile.methods
+      .removeAllFriends()
       .send({ from: accounts[0], gas: 1000000 });
 
-    myExchanges = await profile.methods.getAllExchanges().call();
+    // myExchanges = await profile.methods.getAllExchanges().call();
 
-    console.log(myExchanges);
+    console.log("My Exchanges:");
+    console.log(await profile.methods.getAllExchanges().call());
+    console.log("My Friends:");
+    console.log(await profile.methods.getFriends().call());
 
     // let twoTimesMyExchanges = myExchanges.concat(myExchanges);
     // console.log(twoTimesMyExchanges);
@@ -234,7 +240,13 @@ class Test extends Component {
 
         <form onSubmit={this.onConfirmFriendRequest}>
           <label>
-            Confirm a friend request: In the Application you will have to click V or something:
+            Confirm a friend request: Enter the friend's address in the left input and the index of the request in the right one
+            <input
+              type="text"
+              value={this.state.friendRequestIndex}
+              onChange={this.state.friendsAddress}
+              name="name"
+            />
             <input
               type="text"
               value={this.state.friendRequestIndex}
