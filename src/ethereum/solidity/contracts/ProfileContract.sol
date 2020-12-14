@@ -85,6 +85,8 @@ contract ProfileContract{
         }
 
         // exchanges.pop();
+        delete exchanges[exchanges.length - 1];
+        exchanges.length--;
     }
 
     function getExchangeFromExchangeId(uint exchangeId) public view returns (Exchange memory){
@@ -135,9 +137,9 @@ contract ProfileContract{
         // return newExchange;
     }
 
-    function setExchanges(Exchange[] memory providedExchanges) public {
-        exchanges = providedExchanges;
-    }
+    // function setExchanges(Exchange[] memory providedExchanges) public {
+    //     exchanges = providedExchanges;
+    // }
 
     // I run for my own ProfileContract
     function addExchange(address source, address destination, string memory optionalDescription, ExchangeType exType, ExchangePurpose purpose, address[] memory approvers, bool isApproved) public returns (Exchange memory) {

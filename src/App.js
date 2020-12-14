@@ -3,10 +3,10 @@ import "./App.css";
 import web3 from "./web3";
 import profileAbi from "./ethereum/solidity/profile";
 
-const address = "0x010788BD86d55b073d1C995a05576B6cC502AC8E";
+const address = "0x9cD4DC0a5381f8eD87D587F52B7dbdd575D407a4";
 
 // For testing purposes only!
-const friendsProfileAddress = "0x92D2ba8AC12435BF70F41eC311E269DbB8056E2c";
+const friendsProfileAddress = "0x2CeDb2Bb2749AA93E56A38D7aCEe42b2cDe5fae2";
 
 const profile = new web3.eth.Contract(profileAbi, address);
 
