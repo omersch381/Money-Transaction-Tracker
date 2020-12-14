@@ -23,7 +23,7 @@ class Test extends Component {
       await ethereum.enable();
     }
   }
-
+  //////////////////////////////////////////////////////////////////////////////////////
   // Remove Exchanges list for both our exchanges and friend exchanges
   onRemoveExchangesList = async (event) => {
     event.preventDefault();
@@ -55,10 +55,10 @@ class Test extends Component {
     console.log(friendsExchanges);
   };
 
-
+  //////////////////////////////////////////////////////////////////////////////////////
 
   // Add a friend exchange for both our exchanges and friend exchanges
-  onSubmitTest = async (event) => {
+  onSubmitAddFriendRequest = async (event) => {
     event.preventDefault();
 
     // Getting accounts list
@@ -89,7 +89,7 @@ class Test extends Component {
   };
 
 
-
+  //////////////////////////////////////////////////////////////////////////////////////
 
   // Confirm a friend exchange for both our exchanges and friend exchanges
   onConfirmFriendRequest = async (event) => {
@@ -130,7 +130,7 @@ class Test extends Component {
       console.log("Exchange source is:");
       console.log(friendExchange.exchangeDetails.source); // my friend's source
       //TODO: Switch "0" with something clearer, "0" represents addFriendRequest Enum
-      if (friendExchange.exchangePurpose == "0" && friendExchange.exchangeDetails.source == this.state.friendsAddress) {
+      if (friendExchange.exchangePurpose === "0" && friendExchange.exchangeDetails.source === this.state.friendsAddress) {
         console.log("success with matching a friend's request");
         await friendsProfile.methods
           .confirmFriendRequest(index)
@@ -146,24 +146,49 @@ class Test extends Component {
     console.log("friends current friendsList:(supposed to be not empty)");
     const friendsCurrentFriendsList = await friendsProfile.methods.getFriends().call();
     console.log(friendsCurrentFriendsList);
+  };
+  //////////////////////////////////////////////////////////////////////////////////////
+
+  // Testing setExchanges
+  onSetExchanges = async (event) => {
+    event.preventDefault();
+
+    // Getting accounts list
+    const accounts = await web3.eth.getAccounts();
+
+    let myExchanges = await profile.methods.getAllExchanges().call();
+
+    // Sending exchanges to setExchanges:
+    await profile.methods
+      .setExchanges(myExchanges)
+      .send({ from: accounts[0], gas: 1000000 });
+
+    myExchanges = await profile.methods.getAllExchanges().call();
+
+    console.log(myExchanges);
+
+    // let twoTimesMyExchanges = myExchanges.concat(myExchanges);
+    // console.log(twoTimesMyExchanges);
 
 
+    // // Sending friend requests
     // await friendsProfile.methods
-    //   .confirmFriendRequestNotRestricted()
+    //   .removeAllExchanges()
     //   .send({ from: accounts[0], gas: 1000000 });
 
-    // const friendsExchanges = await friendsProfile.methods.getAllExchanges().call();
+    // let friendsExchanges = await friendsProfile.methods.getAllExchanges().call();
 
     // // Sending profile requests
     // await profile.methods
     //   .removeAllExchanges()
     //   .send({ from: accounts[0], gas: 1000000 });
 
-    // ourExchanges = await profile.methods.getAllExchanges().call();
+    // const ourExchanges = await profile.methods.getAllExchanges().call();
 
     // console.log(ourExchanges);
     // console.log(friendsExchanges);
   };
+
 
   handleChangeFriendAddress = (event) => {
     event.preventDefault();
@@ -180,7 +205,8 @@ class Test extends Component {
       <div>
         <h2>Lottery Contract</h2>
         <hr />
-        <form onSubmit={this.onSubmitTest}>
+
+        <form onSubmit={this.onSubmitAddFriendRequest}>
           <label>
             Add friend address:
             <input
@@ -217,6 +243,19 @@ class Test extends Component {
             />
           </label>
           <input type="submit" value="Confirm" />
+        </form>
+
+        <form onSubmit={this.onSetExchanges}>
+          <label>
+            Test setExchanges
+            {/* <input
+              type="text"
+              value={this.state.friendRequestIndex}
+              onChange={this.handleChangeFriendRequestIndex}
+              name="name"
+            /> */}
+          </label>
+          <input type="submit" value="Test it!" />
         </form>
 
       </div>
