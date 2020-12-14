@@ -170,14 +170,13 @@ contract ProfileContract{
 
     // I run for my own ProfileContract
     function confirmFriendRequest(uint friendExchangeIndex) public{
-        // Exchange memory exchangeToConfirm = getExchangeFromExchangeId(friendExchangeId);
         Exchange memory exchangeToConfirm = exchanges[friendExchangeIndex];
         friends.push(exchangeToConfirm.exchangeDetails.destination);
         removeExchange(friendExchangeIndex);
     }
 
     // I run from other's ProfileContract
-    function confirmFriendRequestNotRestricted(uint friendExchangeIndex) public returns (Exchange memory){
+    function confirmFriendRequestNotRestricted(uint friendExchangeIndex) public {
         Exchange memory exchangeToConfirm = exchanges[friendExchangeIndex];
         friends.push(exchangeToConfirm.exchangeDetails.source);
         removeExchange(friendExchangeIndex);

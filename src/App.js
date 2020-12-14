@@ -3,10 +3,10 @@ import "./App.css";
 import web3 from "./web3";
 import profileAbi from "./ethereum/solidity/profile";
 
-const address = "0x9cD4DC0a5381f8eD87D587F52B7dbdd575D407a4";
+const address = "0x8a5C58AE9ca3b375cAD041C9279e943c96054Ee4";
 
 // For testing purposes only!
-const friendsProfileAddress = "0x2CeDb2Bb2749AA93E56A38D7aCEe42b2cDe5fae2";
+const friendsProfileAddress = "0x6285E7e0A8ea75e8B314767274eAb0086252ec9F";
 
 const profile = new web3.eth.Contract(profileAbi, address);
 
@@ -133,7 +133,7 @@ class Test extends Component {
       if (friendExchange.exchangePurpose === "0" && friendExchange.exchangeDetails.source === this.state.friendsAddress) {
         console.log("success with matching a friend's request");
         await friendsProfile.methods
-          .confirmFriendRequest(index)
+          .confirmFriendRequestNotRestricted(index)
           .send({ from: accounts[0], gas: 1000000 });
       } else {
         console.log(index + "is not a match");
@@ -158,13 +158,13 @@ class Test extends Component {
 
     // let myExchanges = await profile.methods.getAllExchanges().call();
 
-    // Sending exchanges to setExchanges:
-    await profile.methods
-      .removeAllExchanges()
-      .send({ from: accounts[0], gas: 1000000 });
-    await profile.methods
-      .removeAllFriends()
-      .send({ from: accounts[0], gas: 1000000 });
+    // // Removing all my exchanges (friends and general ones)
+    // await profile.methods
+    //   .removeAllExchanges()
+    //   .send({ from: accounts[0], gas: 1000000 });
+    // await profile.methods
+    //   .removeAllFriends()
+    //   .send({ from: accounts[0], gas: 1000000 });
 
     // myExchanges = await profile.methods.getAllExchanges().call();
 
@@ -243,8 +243,8 @@ class Test extends Component {
             Confirm a friend request: Enter the friend's address in the left input and the index of the request in the right one
             <input
               type="text"
-              value={this.state.friendRequestIndex}
-              onChange={this.state.friendsAddress}
+              value={this.state.friendsAddress}
+              onChange={this.handleChangeFriendAddress}
               name="name"
             />
             <input
