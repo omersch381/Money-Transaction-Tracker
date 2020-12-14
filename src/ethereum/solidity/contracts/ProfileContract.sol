@@ -166,7 +166,7 @@ contract ProfileContract{
     function confirmFriendRequest(uint friendExchangeIndex) public{
         // Exchange memory exchangeToConfirm = getExchangeFromExchangeId(friendExchangeId);
         Exchange memory exchangeToConfirm = exchanges[friendExchangeIndex];
-        friends.push(exchangeToConfirm.exchangeDetails.source);
+        friends.push(exchangeToConfirm.exchangeDetails.destination);
         removeExchange(friendExchangeIndex);
     }
 
