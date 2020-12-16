@@ -10,38 +10,6 @@ const friendsProfileAddress = "0x0d5EBeBdeF7AE42e65EF9AEa69c86Fb2D376f6e3";
 
 const profile = new web3.eth.Contract(profileAbi, address);
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////// I need to test it - creating a contract by pressing a button///////////////
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-// const compiledProfileContract = require('./solidity/build/ProfileContract.json');
-const compiledBinaryContract = require('./solidity/build/BinaryContract.json');
-
-// It might be useful in the future
-// binaryContract = await new web3.eth.Contract(JSON.parse(compiledBinaryContract.interface))
-//   .deploy({data: compiledBinaryContract.bytecode})
-//   .send({from: accounts[0], gas: '1000000'});
-
-  await profile.methods.createBinaryContract(
-    this.state.playerOne,
-    this.state.amount,
-    this.state.playerTwo,
-    this.state.validityInDays
-  )
-  .send({
-      from: accounts[0],
-      gas: '5000000'
-  });
-
-  const addresses = await profile.methods.getContracts().call();
-  binaryContractAddress = addresses[0];
-
-  binaryContract = await new web3.eth.Contract(
-    JSON.parse(compiledBinaryContract.interface), binaryContractAddress
-);
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-
 class Test extends Component {
 
   state = {
@@ -182,7 +150,7 @@ class Test extends Component {
   //////////////////////////////////////////////////////////////////////////////////////
 
   // Testing deploying a contract
-  onDeployingAContract = async (event) => {
+  onTestingButtonPress = async (event) => {
     event.preventDefault();
 
     // Getting accounts list
@@ -190,20 +158,20 @@ class Test extends Component {
 
     // let myExchanges = await profile.methods.getAllExchanges().call();
 
-    // // Removing all my exchanges (friends and general ones)
-    // await profile.methods
-    //   .removeAllExchanges()
-    //   .send({ from: accounts[0], gas: 1000000 });
-    // await profile.methods
-    //   .removeAllFriends()
-    //   .send({ from: accounts[0], gas: 1000000 });
+    // Removing all my exchanges (friends and general ones)
+    await profile.methods
+      .removeAllExchanges()
+      .send({ from: accounts[0], gas: 1000000 });
+    await profile.methods
+      .removeAllFriends()
+      .send({ from: accounts[0], gas: 1000000 });
 
-    // myExchanges = await profile.methods.getAllExchanges().call();
+    myExchanges = await profile.methods.getAllExchanges().call();
 
-    // console.log("My Exchanges:");
-    // console.log(await profile.methods.getAllExchanges().call());
-    // console.log("My Friends:");
-    // console.log(await profile.methods.getFriends().call());
+    console.log("My Exchanges:");
+    console.log(await profile.methods.getAllExchanges().call());
+    console.log("My Friends:");
+    console.log(await profile.methods.getFriends().call());
 
 
   };
@@ -270,7 +238,7 @@ class Test extends Component {
           <input type="submit" value="Confirm" />
         </form>
 
-        <form onSubmit={this.onDeployingAContract}>
+        <form onSubmit={this.onTestingButtonPress}>
           <label>
             Deploy A Contract!
             {/* <input

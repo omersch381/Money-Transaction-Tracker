@@ -2,6 +2,7 @@ pragma solidity ^0.4.17;
 pragma experimental ABIEncoderV2;
 
 // import "./UserPreferences.sol";
+import "./BinaryContract.sol";
 
 contract ProfileContract{
 
@@ -42,6 +43,20 @@ contract ProfileContract{
 
     function ProfileContract() public {
         owner = msg.sender;
+    }
+
+    function createBinaryContract(address providedPlayerOne, uint amount, address providedPlayerTwo, uint providedValidityInDays) public {
+        address newBinaryContract = new BinaryContract(providedPlayerOne, amount, providedPlayerTwo, providedValidityInDays);
+        contracts.push(newBinaryContract);
+    }
+
+    function getContracts() public returns (address[]){
+        return contracts;
+    }
+
+    // For testing only!!!!!!!!!
+    function removeContracts() public {
+        delete contracts;
     }
 
     // /*

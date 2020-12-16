@@ -1,12 +1,7 @@
 const HDWalletprovider = require('truffle-hdwallet-provider');
 const Web3 = require('web3');
 
-const compiledProfile = require('./build/ProfileContract.json');
-
-const {
-    interface,
-    bytecode
-} = require('./compile.js');
+const compiledFactory = require('./build/CampaignFactory.json');
 
 const provdier = new HDWalletprovider(
     'page basic neutral unaware target rather tattoo poet dutch flag luxury minute',
@@ -20,18 +15,16 @@ const deploy = async () => {
 
     console.log('Attempting to deploy', accounts[0]);
 
-    const result = await new web3.eth.Contract(JSON.parse(compiledProfile.interface))
+    const result = await new web3.eth.Contract(JSON.parse(compiledFactory.interface))
         .deploy({
-            data: compiledProfile.bytecode,
+            data: compiledFactory.bytecode,
         })
         .send({
-            gas: '5000000',
+            gas: '1000000',
             from: accounts[0]
         });
 
-    // If we would like to print the abi we can just uncomment this line
-    // console.log(interface);
-    console.log('Contract deployed to ', result.options.address);
-};
+        console.log('Contract deployed to ', result.options.address);
+    };
 
 deploy();

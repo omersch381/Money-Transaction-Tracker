@@ -27,7 +27,7 @@ contract BinaryContract{
     Transaction[] binContractTransactionsLog;
 
     // E.g. BinaryContract(player1, 2, player2) == deploy a new contract, where player 1 owes 2 shekels to player 2
-    function BinaryContract(address providedPlayerOne, uint amount, address providedPlayerTwo, uint providedValidityInDays) public  {
+    function BinaryContract(address providedPlayerOne, uint amount, address providedPlayerTwo, uint providedValidityInDays) public ifValid {
         creationDate = block.timestamp;
 
         if (providedValidityInDays == 0)
@@ -55,7 +55,7 @@ contract BinaryContract{
         updateContractDebt(sender, amount, receiver);
     }
 
-    function updateContractDebt (address sender, uint amount, address receiver) public {
+    function updateContractDebt (address sender, uint amount, address receiver) public ifValid {
         if(binContractTransactionsLog.length != 1){ // in the constructor we just pushed the only transaction
             if (currentDebt.debtor != sender){ // means the debtor now in a bigger debt
             currentDebt.amountOwned += amount;
@@ -75,15 +75,15 @@ contract BinaryContract{
         }
     }
 
-    function updateDebtor(address newDebtor) public{
+    function updateDebtor(address newDebtor) public ifValid {
         currentDebt.debtor = newDebtor;
     }
 
-    function updateCreditor(address newCreditor) public{
+    function updateCreditor(address newCreditor) public ifValid {
         currentDebt.creditor = newCreditor;
     }
 
-    function getCurrentDebtorAddress() public view returns(address){
+    function getCurrentDebtorAddress() public ifValid returns(address){
         return currentDebt.debtor;
     }
 
@@ -91,7 +91,7 @@ contract BinaryContract{
     //     //return currentDebt.debtor name
     // }
 
-    function getCurrentCreditorAddress() public view returns(address){
+    function getCurrentCreditorAddress() public ifValid returns(address){
         return currentDebt.creditor;
     }
 
@@ -99,11 +99,19 @@ contract BinaryContract{
     //     //return currentDebt.creditor name
     // }
 
-    function getCurrentDebtAmount() public view returns(uint){
+    function getCurrentDebtAmount() public ifValid returns(uint){
         return currentDebt.amountOwned;
     }
 
-    function getCurrentDebt() public view returns(ContractDebt memory){
+    function getCurrentDebt() public ifValid returns(ContractDebt memory){
         return currentDebt;
+    }
+
+    modifier ifValid(){
+        if (block.timestamp > creationDate + validityInDays * 1 days){
+            isValid = false;
+        }
+        require(isValid);
+        _;
     }
 }
