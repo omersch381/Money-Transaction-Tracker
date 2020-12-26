@@ -1,14 +1,11 @@
 pragma solidity ^0.4.17;
 pragma experimental ABIEncoderV2;
 
-// import "./UserPreferences.sol";
-// import "./BinaryContract.sol";
-
 contract ProfileContract{
 
     enum ExchangeType{ Request, Response }
 
-    enum ExchangePurpose{ AddFriend, DebtAddition, DebtRotation }
+    enum ExchangePurpose{ AddFriend, AddDebt, DebtRotation }
 
     struct ExchangeDetails {
         uint exchangeId;
@@ -45,20 +42,6 @@ contract ProfileContract{
         owner = msg.sender;
     }
 
-    function createBinaryContract(address providedPlayerOne, uint amount, address providedPlayerTwo, uint providedValidityInDays) public {
-        address newBinaryContract = new BinaryContract(providedPlayerOne, amount, providedPlayerTwo, providedValidityInDays);
-        contracts.push(newBinaryContract);
-    }
-
-    function getContracts() public returns (address[] memory){
-        return contracts;
-    }
-
-    // For testing only!!!!!!!!!
-    function removeContracts() public {
-        delete contracts;
-    }
-
     // /*
     // Status includes all the attributes each user has on its ProfileContract.
     // We are having this method so we can update the presented attributes in one API call.
@@ -81,9 +64,9 @@ contract ProfileContract{
     // // }
 
     // // Exchanges section
-    function getExchangeIndexFromExchangeId(uint exchangeId) public view returns (uint){
-        //TODO
-    }
+    // function getExchangeIndexFromExchangeId(uint exchangeId) public view returns (uint){
+    //     //TODO
+    // }
 
     function removeAllExchanges() public{
         delete exchanges;
@@ -104,11 +87,7 @@ contract ProfileContract{
         exchanges.length--;
     }
 
-    function getExchangeFromExchangeId(uint exchangeId) public view returns (Exchange memory){
-        //TODO
-    }
-
-    function getAllExchanges() public view returns (Exchange[] memory){
+    function getAllExchanges() external view returns (Exchange[] memory){
         return exchanges;
     }
 
@@ -151,10 +130,6 @@ contract ProfileContract{
 
         // return newExchange;
     }
-
-    // function setExchanges(Exchange[] memory providedExchanges) public {
-    //     exchanges = providedExchanges;
-    // }
 
     // I run for my own ProfileContract
     function addExchange(address source, address destination, string memory optionalDescription, ExchangeType exType, ExchangePurpose purpose, address[] memory approvers, bool isApproved) public returns (Exchange memory) {
@@ -212,6 +187,73 @@ contract ProfileContract{
     // function getFriendName(address friend) public view restricted returns (string memory name) {
     //     return "TODO";
     // }
+    /////////////////////////////////////////////////////////////////////////////////////
+
+    // I run from other's ProfileContract
+    function addDebtRequestNotRestricted(address source) public{
+        // Note: Actor A calls Actor_B's_addDebtRequest method in order to add
+        // their (Actor A's) Debt request on Actor_B's exchangesList.
+        // No actor runs this method for themselves.
+        // addExchange automatically assigns source field as this contract address.
+        // Note: the 'new address[](0)' means we send 0 approvers for a Debt request.
+
+        addExchangeNotRestricted(source, address(0), "addDebtRequest", ExchangeType.Request, ExchangePurpose.AddDebt, new address[](0), false);
+    }
+
+    // I run for my own ProfileContract
+    function addDebtRequest(address destination) public{
+
+        // addExchange(source=address(0), destination=givenDestination,...)
+        addExchange(address(0), destination, "addDebtRequest", ExchangeType.Request, ExchangePurpose.AddDebt, new address[](0), false);
+    }
+
+    // I run for my own ProfileContract
+    function confirmDebtRequest(uint debtExchangeIndex) public{
+        // We first check on App.js if such a contract exist.
+        // If it is not, we create one (using a solidity method written here)
+        // If it is, we just addATransaction using the contract reference.
+        // Then we continue to the following:
+
+        Exchange memory exchangeToConfirm = exchanges[debtExchangeIndex];
+        removeExchange(debtExchangeIndex);
+
+        // We do not need to push the new contract to contracts[] here as the createBinaryContract handles it
+    }
+
+    function getLastContract() public view returns (address){
+        return contracts[contracts.length -1];
+    }
+
+    function getZeroAddress() public view returns (address){
+        return address(0);
+    }
+
+    // I run from other's ProfileContract
+    function confirmDebtRequestNotRestricted(uint debtExchangeIndex, address binContractAddress) public {
+
+        // If we just deployed a binaryContract we send it's address (on App.js), else we send address(0)
+        // To send an address(0) we can use the getZeroAddress I implemented here
+        if (binContractAddress != address(0)){ // it means we just deployed a binContract
+            contracts.push(binContractAddress);
+        }
+        Exchange memory exchangeToConfirm = exchanges[debtExchangeIndex];
+        removeExchange(debtExchangeIndex);
+    }
+    /////////////////////////////////////////////////////////////////////////////////////
+
+    function createBinaryContract(address sender, uint amount, address receiver) public {
+        address newBinaryContract = new BinaryContract(sender, amount, receiver);
+        contracts.push(newBinaryContract);
+    }
+
+    function getContracts() public returns (address[] memory){
+        return contracts;
+    }
+
+    // For testing only!!!!!!!!!
+    function removeContracts() public {
+        delete contracts;
+    }
 
     //  modifier restricted(){
     //     require(msg.sender == owner);
@@ -228,54 +270,7 @@ contract ProfileContract{
         require(isAFriendbool == true);
         _;
     }
-
-     /*
-    Unittests
-
-    When we want to test functionality, we can (should) leave the testing code in
-    this section so we could use this code when we deploy the contracts
-    and write some tests on Mocha.
-    Also, we don't know any other functional testing tools (on Solidity solely).
-    */
-
-    //  function testAddExchange(address receiverAddress) public {
-    //      //TODO Omer: write assert statements for this test
-    //     string memory optionalDescription = "hey description";
-    //     ExchangeType exType = ExchangeType.Request;
-    //     ExchangePurpose purpose = ExchangePurpose.DebtAddition;
-    //     address[] memory addresses = new address[](1);
-    //     addresses[0] = address(this);
-    //     bool isApproved = false;
-    //     ExchangeDetails memory newExchangeDetails = ExchangeDetails(receiverAddress, address(this), optionalDescription, exType, block.timestamp); // block.timestamp returns unix timestamp
-    //     Exchange memory newExchange = Exchange(newExchangeDetails, purpose,addresses,isApproved);
-    //     exchanges.push(newExchange);
-    // }
-
-    // function testAddFriendRequest() public {
-
-    //     // it might be impossible, because when the user clicks on "addFriendRequest"
-    //     // 2 things are supposed to happen:
-    //     //      The user's ProfileContract adds a pending request
-    //     //      The target's ProfileContract adds a pending request
-    //     //
-    //     // from both of the things to test, only the first one can be automated.
-
-    //     // sender adds a friend request from source ProfileContract at the called ProfileContract exchanges list
-    //     Exchange memory addedExchange = addFriendRequest();
-
-    //     ExchangeDetails memory xd = addedExchange.exchangeDetails;
-    //     // assert(xd.source == address(this));
-    //     // assert(xd.destination == address(this));
-    //     string memory optionalDescription = xd.optionalDescription;
-    //     assert(keccak256(abi.encodePacked(optionalDescription)) == keccak256(abi.encodePacked("addFriendRequest")));
-    //     assert(ExchangeType.Request == xd.exchangeType);
-    //     assert(xd.creationDate > 0);
-
-    //     assert(addedExchange.exchangePurpose == ExchangePurpose.AddFriend);
-    // }
 }
-
-// pragma solidity ^0.4.17;
 
 contract BinaryContract{
 
@@ -288,38 +283,72 @@ contract BinaryContract{
 
     // We have that struct as it stores the current contract status (the "sum" of all the contract's transactions)
     // It saves power/money for the caller - every time a user adds a debt - it changes the ContractDebt as well
-    struct ContractDebt{
-        address debtor;
-        address creditor;
-        uint amountOwned;
-    }
+    // struct ContractDebt{
+    //     address debtor;
+    //     address creditor;
+    //     uint amountOwned;
+    // }
 
     uint creationDate;
     uint validityInDays;
     bool isValid = true;
-    address playerOne;
-    address playerTwo;
-    ContractDebt currentDebt;
+    // address playerOne;
+    // address playerTwo;
+
+    // ContractDebt currentDebt;
+    address debtor;
+    address creditor;
+    uint amountOwned;
 
     Transaction[] binContractTransactionsLog;
 
-    // E.g. BinaryContract(player1, 2, player2) == deploy a new contract, where player 1 owes 2 shekels to player 2
-    function BinaryContract(address providedPlayerOne, uint amount, address providedPlayerTwo, uint providedValidityInDays) public ifValid {
-        creationDate = block.timestamp;
-
-        if (providedValidityInDays == 0)
-            validityInDays = 365;
-        else
-            validityInDays = providedValidityInDays;
-
-        playerOne = providedPlayerOne;
-
-        playerTwo = providedPlayerTwo;
-
-        addTransaction(providedPlayerOne, amount, providedPlayerTwo);
+    function BinaryContract(address providedCreditor, uint amount, address providedDebtor) public{
+        debtor = providedDebtor;
+        creditor = providedCreditor;
+        amountOwned = amount;
     }
 
-    function addTransaction (address sender, uint amount, address receiver) public ifValid {
+    // function getNumberForTestingOnly() public view returns (uint) {
+    //     return validityInDays;
+    // }
+
+    // E.g. BinaryContract(player1, 2, player2) == deploy a new contract, where player 1 owes 2 shekels to player 2
+    // function setArguments(address providedCreditor, uint amount, address providedDebtor) public {
+    //     // creationDate = block.timestamp;
+
+    //     // if (providedValidityInDays == 0)
+    //     //     validityInDays = 365;
+    //     // else
+    //     //     validityInDays = providedValidityInDays;
+
+    //     debtor = providedDebtor;
+    //     creditor = providedCreditor;
+    //     amountOwned = amount;
+
+    //     addTransaction(providedPlayerOne, amount, providedPlayerTwo);
+    // }
+
+    // // E.g. BinaryContract(player1, 2, player2) == deploy a new contract, where player 1 owes 2 shekels to player 2
+    // function setArguments(address providedPlayerOne) public {
+    //     // creationDate = block.timestamp;
+
+    //     // if (providedValidityInDays == 0)
+    //     //     validityInDays = 365;
+    //     // else
+    //     //     validityInDays = providedValidityInDays;
+
+    //     playerOne = providedPlayerOne;
+
+    //     currentDebt.debtor = providedPlayerOne;
+    //     currentDebt.creditor = providedPlayerOne;
+    //     currentDebt.amountOwned = 6;
+
+    //     // playerTwo = providedPlayerTwo;
+
+    //     // addTransaction(providedPlayerOne, amount, providedPlayerTwo);
+    // }
+
+    function addTransaction (address sender, uint amount, address receiver) public {
         Transaction memory transaction = Transaction({
             from: sender,
             to: receiver,
@@ -332,56 +361,56 @@ contract BinaryContract{
         updateContractDebt(sender, amount, receiver);
     }
 
-    function updateContractDebt (address sender, uint amount, address receiver) public ifValid {
+    function updateContractDebt (address sender, uint amount, address receiver) public {
         if(binContractTransactionsLog.length != 1){ // in the constructor we just pushed the only transaction
-            if (currentDebt.debtor != sender){ // means the debtor now in a bigger debt
-            currentDebt.amountOwned += amount;
+            if (debtor != sender){ // means the debtor now in a bigger debt
+            amountOwned += amount;
             } else { // means the debtor is the sender
-                if (amount > currentDebt.amountOwned){
+                if (amount > amountOwned){
                      updateDebtor(receiver);
                      updateCreditor(sender);
-                     currentDebt.amountOwned =  amount - currentDebt.amountOwned;
+                     amountOwned =  amount - amountOwned;
                 } else{
-                    currentDebt.amountOwned -= amount;
+                    amountOwned -= amount;
                 }
             }
         } else {
-            currentDebt.debtor = receiver;
-            currentDebt.creditor = sender;
-            currentDebt.amountOwned = amount;
+            debtor = receiver;
+            creditor = sender;
+            amountOwned = amount;
         }
     }
 
-    function updateDebtor(address newDebtor) public ifValid {
-        currentDebt.debtor = newDebtor;
+    function updateDebtor(address newDebtor) public {
+        debtor = newDebtor;
     }
 
-    function updateCreditor(address newCreditor) public ifValid {
-        currentDebt.creditor = newCreditor;
+    function updateCreditor(address newCreditor) public {
+        creditor = newCreditor;
     }
 
-    function getCurrentDebtorAddress() public ifValid returns(address){
-        return currentDebt.debtor;
-    }
-
-    // function getCurrentDebtorName() public view returns(string memory){
-    //     //return currentDebt.debtor name
+    // function getCurrentDebtorAddress() public ifValid returns(address){
+    //     return currentDebt.debtor;
     // }
 
-    function getCurrentCreditorAddress() public ifValid returns(address){
-        return currentDebt.creditor;
-    }
+    //// function getCurrentDebtorName() public view returns(string memory){
+    ////     //return currentDebt.debtor name
+    //// }
 
-    // function getCurrentCreditorName() public view returns(string memory){
-    //     //return currentDebt.creditor name
+    // function getCurrentCreditorAddress() public ifValid returns(address){
+    //     return currentDebt.creditor;
     // }
 
-    function getCurrentDebtAmount() public ifValid returns(uint){
-        return currentDebt.amountOwned;
-    }
+    //// function getCurrentCreditorName() public view returns(string memory){
+    ////     //return currentDebt.creditor name
+    //// }
 
-    function getCurrentDebt() public ifValid returns(ContractDebt memory){
-        return currentDebt;
+    // function getCurrentDebtAmount() public view returns(uint){
+    //     return currentDebt.amountOwned;
+    // }
+
+    function getCurrentDebt() public view returns(address, uint, address){
+        return (debtor, amountOwned, creditor);
     }
 
     modifier ifValid(){

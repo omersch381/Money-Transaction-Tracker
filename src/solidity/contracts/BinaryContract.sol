@@ -11,38 +11,72 @@ contract BinaryContract{
 
     // We have that struct as it stores the current contract status (the "sum" of all the contract's transactions)
     // It saves power/money for the caller - every time a user adds a debt - it changes the ContractDebt as well
-    struct ContractDebt{
-        address debtor;
-        address creditor;
-        uint amountOwned;
-    }
+    // struct ContractDebt{
+    //     address debtor;
+    //     address creditor;
+    //     uint amountOwned;
+    // }
 
     uint creationDate;
     uint validityInDays;
     bool isValid = true;
-    address playerOne;
-    address playerTwo;
-    ContractDebt currentDebt;
+    // address playerOne;
+    // address playerTwo;
+
+    // ContractDebt currentDebt;
+    address debtor;
+    address creditor;
+    uint amountOwned;
 
     Transaction[] binContractTransactionsLog;
 
-    // E.g. BinaryContract(player1, 2, player2) == deploy a new contract, where player 1 owes 2 shekels to player 2
-    function BinaryContract(address providedPlayerOne, uint amount, address providedPlayerTwo, uint providedValidityInDays) public ifValid {
-        creationDate = block.timestamp;
-
-        if (providedValidityInDays == 0)
-            validityInDays = 365;
-        else
-            validityInDays = providedValidityInDays;
-
-        playerOne = providedPlayerOne;
-
-        playerTwo = providedPlayerTwo;
-
-        addTransaction(providedPlayerOne, amount, providedPlayerTwo);
+    function BinaryContract(address providedCreditor, uint amount, address providedDebtor) public{
+        debtor = providedDebtor;
+        creditor = providedCreditor;
+        amountOwned = amount;
     }
 
-    function addTransaction (address sender, uint amount, address receiver) public ifValid {
+    // function getNumberForTestingOnly() public view returns (uint) {
+    //     return validityInDays;
+    // }
+
+    // E.g. BinaryContract(player1, 2, player2) == deploy a new contract, where player 1 owes 2 shekels to player 2
+    // function setArguments(address providedCreditor, uint amount, address providedDebtor) public {
+    //     // creationDate = block.timestamp;
+
+    //     // if (providedValidityInDays == 0)
+    //     //     validityInDays = 365;
+    //     // else
+    //     //     validityInDays = providedValidityInDays;
+
+    //     debtor = providedDebtor;
+    //     creditor = providedCreditor;
+    //     amountOwned = amount;
+
+    //     addTransaction(providedPlayerOne, amount, providedPlayerTwo);
+    // }
+
+    // // E.g. BinaryContract(player1, 2, player2) == deploy a new contract, where player 1 owes 2 shekels to player 2
+    // function setArguments(address providedPlayerOne) public {
+    //     // creationDate = block.timestamp;
+
+    //     // if (providedValidityInDays == 0)
+    //     //     validityInDays = 365;
+    //     // else
+    //     //     validityInDays = providedValidityInDays;
+
+    //     playerOne = providedPlayerOne;
+
+    //     currentDebt.debtor = providedPlayerOne;
+    //     currentDebt.creditor = providedPlayerOne;
+    //     currentDebt.amountOwned = 6;
+
+    //     // playerTwo = providedPlayerTwo;
+
+    //     // addTransaction(providedPlayerOne, amount, providedPlayerTwo);
+    // }
+
+    function addTransaction (address sender, uint amount, address receiver) public {
         Transaction memory transaction = Transaction({
             from: sender,
             to: receiver,
@@ -55,56 +89,56 @@ contract BinaryContract{
         updateContractDebt(sender, amount, receiver);
     }
 
-    function updateContractDebt (address sender, uint amount, address receiver) public ifValid {
+    function updateContractDebt (address sender, uint amount, address receiver) public {
         if(binContractTransactionsLog.length != 1){ // in the constructor we just pushed the only transaction
-            if (currentDebt.debtor != sender){ // means the debtor now in a bigger debt
-            currentDebt.amountOwned += amount;
+            if (debtor != sender){ // means the debtor now in a bigger debt
+            amountOwned += amount;
             } else { // means the debtor is the sender
-                if (amount > currentDebt.amountOwned){
+                if (amount > amountOwned){
                      updateDebtor(receiver);
                      updateCreditor(sender);
-                     currentDebt.amountOwned =  amount - currentDebt.amountOwned;
+                     amountOwned =  amount - amountOwned;
                 } else{
-                    currentDebt.amountOwned -= amount;
+                    amountOwned -= amount;
                 }
             }
         } else {
-            currentDebt.debtor = receiver;
-            currentDebt.creditor = sender;
-            currentDebt.amountOwned = amount;
+            debtor = receiver;
+            creditor = sender;
+            amountOwned = amount;
         }
     }
 
-    function updateDebtor(address newDebtor) public ifValid {
-        currentDebt.debtor = newDebtor;
+    function updateDebtor(address newDebtor) public {
+        debtor = newDebtor;
     }
 
-    function updateCreditor(address newCreditor) public ifValid {
-        currentDebt.creditor = newCreditor;
+    function updateCreditor(address newCreditor) public {
+        creditor = newCreditor;
     }
 
-    function getCurrentDebtorAddress() public ifValid returns(address){
-        return currentDebt.debtor;
-    }
-
-    // function getCurrentDebtorName() public view returns(string memory){
-    //     //return currentDebt.debtor name
+    // function getCurrentDebtorAddress() public ifValid returns(address){
+    //     return currentDebt.debtor;
     // }
 
-    function getCurrentCreditorAddress() public ifValid returns(address){
-        return currentDebt.creditor;
-    }
+    //// function getCurrentDebtorName() public view returns(string memory){
+    ////     //return currentDebt.debtor name
+    //// }
 
-    // function getCurrentCreditorName() public view returns(string memory){
-    //     //return currentDebt.creditor name
+    // function getCurrentCreditorAddress() public ifValid returns(address){
+    //     return currentDebt.creditor;
     // }
 
-    function getCurrentDebtAmount() public ifValid returns(uint){
-        return currentDebt.amountOwned;
-    }
+    //// function getCurrentCreditorName() public view returns(string memory){
+    ////     //return currentDebt.creditor name
+    //// }
 
-    function getCurrentDebt() public ifValid returns(ContractDebt memory){
-        return currentDebt;
+    // function getCurrentDebtAmount() public view returns(uint){
+    //     return currentDebt.amountOwned;
+    // }
+
+    function getCurrentDebt() public view returns(address, uint, address){
+        return (debtor, amountOwned, creditor);
     }
 
     modifier ifValid(){
