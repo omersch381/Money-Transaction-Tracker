@@ -3,10 +3,10 @@ import "./App.css";
 import web3 from "./web3";
 import profileAbi from "./profile";
 
-const playerOne = "0xb6EE2CFe0c5e5ef69272DC80910DDFa28d7B0f72";
+const playerOne = "0x9D53022395b63A897E5a958881267D4Bd5482a87";
 
 // For testing purposes only!
-const playerTwo = "0x21008c8b4b2EE1bE5d388b8240Fe53A75E7A11c3";
+const playerTwo = "0x5c4cDD31D05325BDe3799237b742F79F8540FEC5";
 
 const compiledBinaryContract = require("./solidity/build/BinaryContract.json");
 
@@ -221,8 +221,8 @@ class Test extends Component {
     );
 
     makeBatchRequest([ // add both of the exchanges in a batch request.
-      profile.methods.addDebtRequest(this.state.playerTwo).send,
-      friendsProfile.methods.addDebtRequestNotRestricted(this.state.playerOne).send,
+      profile.methods.addDebtRequest(this.state.playerTwo, this.state.playerOne, this.state.providedAmount, this.state.playerTwo).send,
+      friendsProfile.methods.addDebtRequestNotRestricted(this.state.playerOne, this.state.playerOne, this.state.providedAmount, this.state.playerTwo).send,
     ])
     function makeBatchRequest(calls) {
       let batch = new web3.BatchRequest();
@@ -253,21 +253,44 @@ class Test extends Component {
     // Getting accounts list
     const accounts = await web3.eth.getAccounts();
 
-    // let myExchanges = await profile.methods.getAllExchanges().call();
+    // Setting playerOne/Two and amount from the request details:
+    let myExchanges = await profile.methods.getAllExchanges().call();
+    let choosenRequest = myExchanges[0]; // TODO: NOTE!! this is for testing only! In the project the user will pick the correct one
+    // console.log(choosenRequest.transaction);
+    this.setState({ playerTwo: choosenRequest.transaction.from });
+    this.setState({ playerOne: choosenRequest.transaction.to });
+    this.setState({ providedAmount: choosenRequest.transaction.amount });
+
     let myContracts = await profile.methods.getContracts().call();
+
+    let existdContractAddress; // if a contract was deployed, it will be null, and deployedContractAddress will have
+    // the addrees and vice versa.
     let deployedContractAddress; // If the contract doesn't exist, == newContractAddress, else == playerOne(0)
     let contractExists = false;
     for (var i = 0; i < myContracts.length; i++) {
       let currentBinaryContract = await new web3.eth.Contract(
         JSON.parse(compiledBinaryContract.interface),
-        myContracts[i]
+        existdContractAddress = myContracts[i]
       );
 
       let currentDebtOfCurrentBinaryContract = await currentBinaryContract.methods.getCurrentDebt().call();
       let accountsOfTransaction = [this.state.playerOne, this.state.playerTwo];
 
+      // console.log("current debt of current binary contract:");
+      // console.log(currentDebtOfCurrentBinaryContract);
+
+      // console.log("accountsOfTransaction");
+      // console.log(accountsOfTransaction);
+
+      // console.log("is currentDebtOfCurrentBinaryContract[0] in accountsOfTransaction?");
+      // console.log(currentDebtOfCurrentBinaryContract[0]);
+      // console.log(accountsOfTransaction.includes(String(currentDebtOfCurrentBinaryContract[0])));
+
+      // console.log("is currentDebtOfCurrentBinaryContract[2] in accountsOfTransaction?");
+      // console.log(currentDebtOfCurrentBinaryContract[2] in accountsOfTransaction);
+
       // currentDebtOfCurrentBinaryContract[0] == playerOne, [2] == playerTwo. Note: [1] == providedAmount
-      if (currentDebtOfCurrentBinaryContract[0] in accountsOfTransaction && currentDebtOfCurrentBinaryContract[2] in accountsOfTransaction) {
+      if (accountsOfTransaction.includes(String(currentDebtOfCurrentBinaryContract[0])) && accountsOfTransaction.includes(String(currentDebtOfCurrentBinaryContract[2]))) {
         // it means that the contract already exist
 
         await currentBinaryContract.methods
@@ -284,7 +307,9 @@ class Test extends Component {
         contractExists = true;
 
         // we assign a zeroAddress to deployedContractAddress as it was not deployed (it was already existed)
-        deployedContractAddress = await currentBinaryContract.methods.getZeroAddress().call();
+        // TODO Omer: change move the method from ProfileContract to BinaryContract!!
+        deployedContractAddress = await profile.methods.getZeroAddress().call();
+        break;
       }
     } // end of for loop
 
@@ -325,12 +350,28 @@ class Test extends Component {
       //   });
     }
 
+    let addressToUse;
+
+    if (contractExists) {
+      addressToUse = existdContractAddress;
+    } else {
+      addressToUse = deployedContractAddress;
+    }
+
+    let currentBinaryContract = await new web3.eth.Contract(
+      JSON.parse(compiledBinaryContract.interface),
+      addressToUse
+    );
+
+    // console.log(deployedContractAddress);
+
+    console.log("Our currentDebt:");
+    console.log(await currentBinaryContract.methods.getCurrentDebt().call());
+
     let friendsProfile = new web3.eth.Contract(
       profileAbi,
       this.state.playerTwo
     );
-
-    console.log(deployedContractAddress);
 
     makeBatchRequest([ // remove both of the exchanges in a batch request.
 
@@ -357,7 +398,6 @@ class Test extends Component {
       })
       batch.execute()
     }
-
 
     // await friendsProfile.methods
     //   .confirmDebtRequestNotRestricted(0, deployedContractAddress)
