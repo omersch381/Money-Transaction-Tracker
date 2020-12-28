@@ -297,14 +297,6 @@ class Test extends Component {
       currentBinaryContractAddress
     );
 
-    console.log("Our currentDebt:");
-    console.log(await currentBinaryContract.methods.getCurrentDebt().call());
-
-    console.log("Our CurrentDebtorAddress:");
-    console.log(await currentBinaryContract.methods.getCurrentDebtorAddress().call());
-
-    console.log("Our CurrentCreditorAddress:");
-    console.log(await currentBinaryContract.methods.getCurrentCreditorAddress().call());
 
     let friendsProfile = new web3.eth.Contract(
       profileAbi,
