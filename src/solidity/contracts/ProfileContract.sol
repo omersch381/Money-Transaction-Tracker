@@ -20,6 +20,7 @@ contract ProfileContract{
     struct Exchange{
         ExchangeDetails exchangeDetails;
         ExchangePurpose exchangePurpose;
+        Transaction transaction;
         address[] approvers;
         bool isApproved;
     }
@@ -27,6 +28,13 @@ contract ProfileContract{
     struct Friend{
         address friendAddress;
         string friendName;
+    }
+
+    struct Transaction {
+        address from;
+        address to;
+        uint amount;
+        uint date;
     }
 
     // Preferences preferences;
@@ -96,7 +104,7 @@ contract ProfileContract{
         return exchangeNum;
     }
 
-    function addExchangeNotRestricted(address source, address destination, string memory optionalDescription, ExchangeType exType, ExchangePurpose purpose, address[] memory approvers, bool isApproved) public{
+    function addExchangeNotRestricted(address source, address destination, string memory optionalDescription, ExchangeType exType, ExchangePurpose purpose, address[] memory approvers, bool isApproved, address sender, uint amount, address receiver) public{
 
         // if it runs from my ProfileContract
         if (source == address(0)) {
@@ -107,6 +115,15 @@ contract ProfileContract{
         }
 
         //TODO: check if we need the second if statement above
+
+        if (sender != address(0)){
+            Transaction memory transaction = Transaction({
+            from: sender,
+            to: receiver,
+            amount: amount,
+            date: block.timestamp
+        });
+        }
 
         ExchangeDetails memory newExchangeDetails = ExchangeDetails({
                 exchangeId: getExchangeUniqueId(),
@@ -122,6 +139,7 @@ contract ProfileContract{
         Exchange memory newExchange = Exchange({
             exchangeDetails: newExchangeDetails,
             exchangePurpose: purpose,
+            transaction: transaction,
             approvers: approvers,
             isApproved: isApproved
         });
@@ -132,10 +150,10 @@ contract ProfileContract{
     }
 
     // I run for my own ProfileContract
-    function addExchange(address source, address destination, string memory optionalDescription, ExchangeType exType, ExchangePurpose purpose, address[] memory approvers, bool isApproved) public returns (Exchange memory) {
+    function addExchange(address source, address destination, string memory optionalDescription, ExchangeType exType, ExchangePurpose purpose, address[] memory approvers, bool isApproved, address sender, uint amount, address receiver) public returns (Exchange memory) {
 
         // source == address(0), destination == givenDestination
-        addExchangeNotRestricted(source, destination, optionalDescription,exType,purpose,approvers,isApproved);
+        addExchangeNotRestricted(source, destination, optionalDescription,exType,purpose,approvers,isApproved, sender, amount, receiver);
     }
 
     // Friends functions
@@ -148,14 +166,14 @@ contract ProfileContract{
         // addExchange automatically assigns source field as this contract address.
         // Note: the 'new address[](0)' means we send 0 approvers for a friend request.
 
-        addExchangeNotRestricted(source, address(0), "addFriendRequest", ExchangeType.Request, ExchangePurpose.AddFriend, new address[](0), false);
+        addExchangeNotRestricted(source, address(0), "addFriendRequest", ExchangeType.Request, ExchangePurpose.AddFriend, new address[](0), false, address(0), 0, address(0));
     }
 
     // I run for my own ProfileContract
     function addFriendRequest(address destination) public{
 
         // addExchange(source=address(0), destination=givenDestination,...)
-        addExchange(address(0), destination, "addFriendRequest", ExchangeType.Request, ExchangePurpose.AddFriend, new address[](0), false);
+        addExchange(address(0), destination, "addFriendRequest", ExchangeType.Request, ExchangePurpose.AddFriend, new address[](0), false, address(0), 0, address(0));
     }
 
     // I run for my own ProfileContract
@@ -189,22 +207,22 @@ contract ProfileContract{
     // }
     /////////////////////////////////////////////////////////////////////////////////////
 
-    // I run from other's ProfileContract
-    function addDebtRequestNotRestricted(address source) public{
+     // I run from other's ProfileContract
+    function addDebtRequestNotRestricted(address source, address sender, uint amount, address receiver) public{
         // Note: Actor A calls Actor_B's_addDebtRequest method in order to add
         // their (Actor A's) Debt request on Actor_B's exchangesList.
         // No actor runs this method for themselves.
         // addExchange automatically assigns source field as this contract address.
         // Note: the 'new address[](0)' means we send 0 approvers for a Debt request.
 
-        addExchangeNotRestricted(source, address(0), "addDebtRequest", ExchangeType.Request, ExchangePurpose.AddDebt, new address[](0), false);
+        addExchangeNotRestricted(source, address(0), "addDebtRequest", ExchangeType.Request, ExchangePurpose.AddDebt, new address[](0), false, sender, amount, receiver);
     }
 
     // I run for my own ProfileContract
-    function addDebtRequest(address destination) public{
+    function addDebtRequest(address destination, address sender, uint amount, address receiver) public{
 
         // addExchange(source=address(0), destination=givenDestination,...)
-        addExchange(address(0), destination, "addDebtRequest", ExchangeType.Request, ExchangePurpose.AddDebt, new address[](0), false);
+        addExchange(address(0), destination, "addDebtRequest", ExchangeType.Request, ExchangePurpose.AddDebt, new address[](0), false, sender, amount, receiver);
     }
 
     // I run for my own ProfileContract
@@ -214,7 +232,7 @@ contract ProfileContract{
         // If it is, we just addATransaction using the contract reference.
         // Then we continue to the following:
 
-        Exchange memory exchangeToConfirm = exchanges[debtExchangeIndex];
+        // Exchange memory exchangeToConfirm = exchanges[debtExchangeIndex];
         removeExchange(debtExchangeIndex);
 
         // We do not need to push the new contract to contracts[] here as the createBinaryContract handles it
@@ -236,7 +254,7 @@ contract ProfileContract{
         if (binContractAddress != address(0)){ // it means we just deployed a binContract
             contracts.push(binContractAddress);
         }
-        Exchange memory exchangeToConfirm = exchanges[debtExchangeIndex];
+        // Exchange memory exchangeToConfirm = exchanges[debtExchangeIndex];
         removeExchange(debtExchangeIndex);
     }
     /////////////////////////////////////////////////////////////////////////////////////
@@ -246,7 +264,7 @@ contract ProfileContract{
         contracts.push(newBinaryContract);
     }
 
-    function getContracts() public returns (address[] memory){
+    function getContracts() public view returns (address[] memory){
         return contracts;
     }
 
@@ -283,29 +301,30 @@ contract BinaryContract{
 
     // We have that struct as it stores the current contract status (the "sum" of all the contract's transactions)
     // It saves power/money for the caller - every time a user adds a debt - it changes the ContractDebt as well
-    // struct ContractDebt{
-    //     address debtor;
-    //     address creditor;
-    //     uint amountOwned;
-    // }
+    struct ContractDebt{
+        address debtor;
+        address creditor;
+        uint amountOwned;
+    }
 
     uint creationDate;
     uint validityInDays;
     bool isValid = true;
-    // address playerOne;
-    // address playerTwo;
+    address playerOne;
+    address playerTwo;
 
-    // ContractDebt currentDebt;
-    address debtor;
-    address creditor;
-    uint amountOwned;
+    ContractDebt currentDebt;
+    // address debtor;
+    // address creditor;
+    // uint amountOwned;
 
     Transaction[] binContractTransactionsLog;
 
     function BinaryContract(address providedCreditor, uint amount, address providedDebtor) public{
-        debtor = providedDebtor;
-        creditor = providedCreditor;
-        amountOwned = amount;
+        playerOne = providedDebtor;
+        playerTwo = providedCreditor;
+
+        addTransaction(providedCreditor, amount, providedDebtor);
     }
 
     // function getNumberForTestingOnly() public view returns (uint) {
@@ -363,30 +382,30 @@ contract BinaryContract{
 
     function updateContractDebt (address sender, uint amount, address receiver) public {
         if(binContractTransactionsLog.length != 1){ // in the constructor we just pushed the only transaction
-            if (debtor != sender){ // means the debtor now in a bigger debt
-            amountOwned += amount;
+            if (currentDebt.debtor != sender){ // means the debtor now in a bigger debt
+            currentDebt.amountOwned += amount;
             } else { // means the debtor is the sender
-                if (amount > amountOwned){
+                if (amount > currentDebt.amountOwned){
                      updateDebtor(receiver);
                      updateCreditor(sender);
-                     amountOwned =  amount - amountOwned;
+                     currentDebt.amountOwned =  amount - currentDebt.amountOwned;
                 } else{
-                    amountOwned -= amount;
+                    currentDebt.amountOwned -= amount;
                 }
             }
         } else {
-            debtor = receiver;
-            creditor = sender;
-            amountOwned = amount;
+            currentDebt.debtor = receiver;
+            currentDebt.creditor = sender;
+            currentDebt.amountOwned = amount;
         }
     }
 
     function updateDebtor(address newDebtor) public {
-        debtor = newDebtor;
+        currentDebt.debtor = newDebtor;
     }
 
     function updateCreditor(address newCreditor) public {
-        creditor = newCreditor;
+        currentDebt.creditor = newCreditor;
     }
 
     // function getCurrentDebtorAddress() public ifValid returns(address){
@@ -410,7 +429,7 @@ contract BinaryContract{
     // }
 
     function getCurrentDebt() public view returns(address, uint, address){
-        return (debtor, amountOwned, creditor);
+        return (currentDebt.debtor, currentDebt.amountOwned, currentDebt.creditor);
     }
 
     modifier ifValid(){
