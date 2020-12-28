@@ -3,10 +3,14 @@ import "./App.css";
 import web3 from "./web3";
 import profileAbi from "./profile";
 
-const playerOne = "0x9D53022395b63A897E5a958881267D4Bd5482a87";
+const playerOne = "0xc6E2f1Dc1D6cB980bf68F355a74555D69f0513d3";
+
+// I make then 2 different variables as I try to make these 2 different scenarios detailed as possible.
+// In our frontend these 2 variables will be the same one
+const address = playerOne;
 
 // For testing purposes only!
-const playerTwo = "0x5c4cDD31D05325BDe3799237b742F79F8540FEC5";
+const playerTwo = "0x869774063c70ed83899A22eF58e6EE9384169835";
 
 const compiledBinaryContract = require("./solidity/build/BinaryContract.json");
 
@@ -19,8 +23,8 @@ class Test extends Component {
     playerOne: "",
     providedAmount: "",
     playerTwo: "",
-    validityInDays: "",
-    message: "",
+    // validityInDays: "",
+    // message: "",
   };
 
   async componentDidMount() {
@@ -29,82 +33,8 @@ class Test extends Component {
       await ethereum.enable();
     }
   }
-  //////////////////////////////////////////////////////////////////////////////////////
-  // Remove Exchanges list for both our exchanges and friend exchanges
-  onRemoveExchangesList = async (event) => {
-    event.preventDefault();
 
-    // Getting accounts list
-    const accounts = await web3.eth.getAccounts();
-
-    // Getting a reference to a friendsProfile
-    const friendsProfile = new web3.eth.Contract(
-      profileAbi,
-      this.state.playerTwo
-    );
-
-    makeBatchRequest([ // remove both of the exchanges in a batch request.
-      profile.methods.removeAllExchanges().send,
-      friendsProfile.methods.removeAllExchanges().send,
-    ])
-    function makeBatchRequest(calls) {
-      let batch = new web3.BatchRequest();
-
-      // let promises = calls.map(call => {
-      calls.map(call => {
-        return new Promise((res, rej) => {
-          let req = call.request({ from: accounts[0], gas: "2000000" }, (err, data) => {
-            if (err) rej(err);
-            else res(data)
-          });
-          batch.add(req)
-        })
-      })
-      batch.execute()
-    }
-
-    console.log(await profile.methods.getAllExchanges().call());
-    console.log(await friendsProfile.methods.getAllExchanges().call());
-  };
-
-  //////////////////////////////////////////////////////////////////////////////////////
-  // Remove Contracts list for both our contracts and friend contracts
-  onRemoveContractsList = async (event) => {
-    event.preventDefault();
-
-    // Getting accounts list
-    const accounts = await web3.eth.getAccounts();
-
-    // Getting a reference to a friendsProfile
-    const friendsProfile = new web3.eth.Contract(
-      profileAbi,
-      this.state.playerTwo
-    );
-
-    makeBatchRequest([ // remove both of the exchanges in a batch request.
-      profile.methods.removeContracts().send,
-      friendsProfile.methods.removeContracts().send,
-    ])
-    function makeBatchRequest(calls) {
-      let batch = new web3.BatchRequest();
-
-      // let promises = calls.map(call => {
-      calls.map(call => {
-        return new Promise((res, rej) => {
-          let req = call.request({ from: accounts[0], gas: "2000000" }, (err, data) => {
-            if (err) rej(err);
-            else res(data)
-          });
-          batch.add(req)
-        })
-      })
-      batch.execute()
-    }
-
-    console.log(await profile.methods.getContracts().call());
-    console.log(await friendsProfile.methods.getContracts().call());
-  };
-
+  // TODO Omer: rename exchange -> request
   //////////////////////////////////////////////////////////////////////////////////////
 
   // Add a friend exchange for both our exchanges and friend exchanges
@@ -114,98 +44,146 @@ class Test extends Component {
     // Getting accounts list
     const accounts = await web3.eth.getAccounts();
 
-    // Getting a reference to a friendsProfile
+    // Getting a reference to a friendsProfile - NOTE: it will work only if the user provided us friendsProfile address
     const friendsProfile = new web3.eth.Contract(
       profileAbi,
       this.state.friendsAddress
     );
 
-    // Sending friend requests
-    await friendsProfile.methods
-      .addFriendRequestNotRestricted(playerOne)
-      .send({ from: accounts[0], gas: 1000000 });
 
-    let friendsExchanges = await friendsProfile.methods
-      .getAllExchanges()
-      .call();
+    // NOTE: that's how I convert between a batch request and 2 seperate "send" requests:
 
-    // Sending profile requests
-    await profile.methods
-      .addFriendRequest(this.state.friendsAddress)
-      .send({ from: accounts[0], gas: 1000000 });
+    // // Sending friend requests
+    // await friendsProfile.methods
+    //   .addFriendRequestNotRestricted(playerOne)
+    //   .send({ from: accounts[0], gas: 1000000 });
 
-    const ourExchanges = await profile.methods.getAllExchanges().call();
+    // // Sending profile requests
+    // await profile.methods
+    //   .addFriendRequest(this.state.friendsAddress)
+    //   .send({ from: accounts[0], gas: 1000000 });
 
-    console.log(ourExchanges);
-    console.log(friendsExchanges);
+    makeBatchRequest([ // add both of the exchanges in a batch request.
+      profile.methods.addFriendRequest(this.state.friendsAddress).send,
+      friendsProfile.methods.addFriendRequestNotRestricted(address).send,
+    ])
+    function makeBatchRequest(calls) {
+      let batch = new web3.BatchRequest();
+
+      calls.map(call => {
+        return new Promise((res, rej) => {
+          let req = call.request({ from: accounts[0], gas: "1000000" }, (err, data) => {
+            if (err) rej(err);
+            else res(data)
+          });
+          batch.add(req)
+        })
+      })
+      batch.execute()
+    }
   };
 
   //////////////////////////////////////////////////////////////////////////////////////
 
   // Confirm a friend exchange for both our exchanges and friend exchanges
-  onConfirmFriendRequest = async (event) => {
+  onSubmitConfirmFriendRequest = async (event) => {
     event.preventDefault();
 
     // Getting accounts list
     const accounts = await web3.eth.getAccounts();
 
-    // Getting a reference to a friendsProfile
+    // Getting a reference to a friendsProfile - NOTE: it will work only if the user provided us friendsProfile address
     const friendsProfile = new web3.eth.Contract(
       profileAbi,
       this.state.friendsAddress
     );
 
-    // Handling our exchanges:
-    await profile.methods
-      .confirmFriendRequest(this.state.friendRequestIndex) // The user presses a V button so we get the index from the user
-      .send({ from: accounts[0], gas: 1000000 });
-
-    // for testing
-    const ourExchanges = await profile.methods.getAllExchanges().call();
-    console.log("Making sure our exchangesList is empty:");
-    console.log(ourExchanges);
-
-    const ourfriends = await profile.methods.getFriends().call();
-    console.log("Making sure friendsList is not empty:");
-    console.log(ourfriends);
-
-    //Handling friend's exchanges:
+    //Finding friend's exchange index:
     let friendExchanges = await friendsProfile.methods.getAllExchanges().call();
+
+    let friendRequestIndex;
 
     for (let index = 0; index < friendExchanges.length; index++) {
       const friendExchange = friendExchanges[index];
 
-      // I print it for testing
-      console.log("Exchange purpose is:");
-      console.log(friendExchange.exchangePurpose);
-      console.log("Exchange source is:");
-      console.log(friendExchange.exchangeDetails.source); // my friend's source
-      //TODO: Switch "0" with something clearer, "0" represents addFriendRequest Enum
-      if (
+      //"0" represents addFriendRequest Enum
+      if ( // if it is a friendRequest and the source is my friend
         friendExchange.exchangePurpose === "0" &&
         friendExchange.exchangeDetails.source === this.state.friendsAddress
       ) {
-        console.log("success with matching a friend's request");
-        await friendsProfile.methods
-          .confirmFriendRequestNotRestricted(index)
-          .send({ from: accounts[0], gas: 1000000 });
-      } else {
-        console.log(index + "is not a match");
+        friendRequestIndex = index;
       }
     }
-    // testing
-    friendExchanges = await friendsProfile.methods.getAllExchanges().call();
-    console.log("friends current exchanges:(supposed to be empty)");
-    console.log(friendExchanges);
-    console.log("friends current friendsList:(supposed to be not empty)");
-    const friendsCurrentFriendsList = await friendsProfile.methods
-      .getFriends()
-      .call();
-    console.log(friendsCurrentFriendsList);
+
+    makeBatchRequest([ // add both of the exchanges in a batch request.
+
+      // In our frontend the user will choose the correct request, here I test it with 0 as there is only one request
+      profile.methods.confirmFriendRequest(0).send,
+      friendsProfile.methods.confirmFriendRequestNotRestricted(friendRequestIndex).send,
+    ])
+    function makeBatchRequest(calls) {
+      let batch = new web3.BatchRequest();
+
+      calls.map(call => {
+        return new Promise((res, rej) => {
+          let req = call.request({ from: accounts[0], gas: "1000000" }, (err, data) => {
+            if (err) rej(err);
+            else res(data)
+          });
+          batch.add(req)
+        })
+      })
+      batch.execute()
+    }
   };
+
   //////////////////////////////////////////////////////////////////////////////////////
 
-  // TODO: make the addRequest contain also the parameters (a user should see to which debt s/he confirms)
+  // Getting my friends
+  onCheckMyFriends = async (event) => {
+    event.preventDefault();
+
+    console.log("your friends are:");
+    console.log(await profile.methods.getFriends().call());
+  }
+
+  //////////////////////////////////////////////////////////////////////////////////////
+  // Remove Friends list for both our friends and friend's friends
+  onRemoveFriendsList = async (event) => {
+    event.preventDefault();
+
+    // Getting accounts list
+    const accounts = await web3.eth.getAccounts();
+
+    // Getting a reference to a friendsProfile - NOTE: it will work only if the user provided us friend's profile address
+    const friendsProfile = new web3.eth.Contract(
+      profileAbi,
+      this.state.friendsAddress
+    );
+
+    makeBatchRequest([ // remove both of the exchanges in a batch request.
+      profile.methods.removeAllFriends().send,
+      friendsProfile.methods.removeAllFriends().send,
+    ])
+    function makeBatchRequest(calls) {
+      let batch = new web3.BatchRequest();
+
+      calls.map(call => {
+        return new Promise((res, rej) => {
+          let req = call.request({ from: accounts[0], gas: "1000000" }, (err, data) => {
+            if (err) rej(err);
+            else res(data)
+          });
+          batch.add(req)
+        })
+      })
+      batch.execute()
+    }
+  };
+
+  //////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////    BINARY_CONTRACT PART         //////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////
 
   // Add a debt request for both our exchanges and target exchanges
   onSubmitAddDebtRequest = async (event) => {
@@ -214,13 +192,14 @@ class Test extends Component {
     // Getting accounts list
     const accounts = await web3.eth.getAccounts();
 
-    // Getting a reference to a friendsProfile
+    // Getting a reference to a friendsProfile - NOTE: it will work only if the user provided us friendsProfile address
     const friendsProfile = new web3.eth.Contract(
       profileAbi,
       this.state.playerTwo
     );
 
     makeBatchRequest([ // add both of the exchanges in a batch request.
+      // the difference: addDebtRequest(destination, same other args), addDebtRequestNotRestricted(source, same other args)
       profile.methods.addDebtRequest(this.state.playerTwo, this.state.playerOne, this.state.providedAmount, this.state.playerTwo).send,
       friendsProfile.methods.addDebtRequestNotRestricted(this.state.playerOne, this.state.playerOne, this.state.providedAmount, this.state.playerTwo).send,
     ])
@@ -239,9 +218,6 @@ class Test extends Component {
       })
       batch.execute()
     }
-
-    console.log(await profile.methods.getAllExchanges().call());
-    console.log(await friendsProfile.methods.getAllExchanges().call());
   };
 
   //////////////////////////////////////////////////////////////////////////////////////
@@ -253,44 +229,31 @@ class Test extends Component {
     // Getting accounts list
     const accounts = await web3.eth.getAccounts();
 
-    // Setting playerOne/Two and amount from the request details:
+    // Setting this.state.{playerOne, Two, amount} from the request details:
     let myExchanges = await profile.methods.getAllExchanges().call();
-    let choosenRequest = myExchanges[0]; // TODO: NOTE!! this is for testing only! In the project the user will pick the correct one
-    // console.log(choosenRequest.transaction);
+    let choosenRequest = myExchanges[0]; // TODO: I use myExchanges[0] for testing only! The user will pick the correct one
+
+
     this.setState({ playerTwo: choosenRequest.transaction.from });
     this.setState({ playerOne: choosenRequest.transaction.to });
     this.setState({ providedAmount: choosenRequest.transaction.amount });
 
     let myContracts = await profile.methods.getContracts().call();
 
-    let existdContractAddress; // if a contract was deployed, it will be null, and deployedContractAddress will have
-    // the addrees and vice versa.
-    let deployedContractAddress; // If the contract doesn't exist, == newContractAddress, else == playerOne(0)
-    let contractExists = false;
-    for (var i = 0; i < myContracts.length; i++) {
+    let existedContractAddress; // if a contract will be deployed, we will use this variable. Otherwise, we will use deployedContractAddress
+    let deployedContractAddress;
+    let contractExisted = false;
+
+    for (var i = 0; i < myContracts.length; i++) { // in this for loop we try to find if a contract exist, or we should create one
       let currentBinaryContract = await new web3.eth.Contract(
         JSON.parse(compiledBinaryContract.interface),
-        existdContractAddress = myContracts[i]
+        existedContractAddress = myContracts[i]
       );
 
       let currentDebtOfCurrentBinaryContract = await currentBinaryContract.methods.getCurrentDebt().call();
       let accountsOfTransaction = [this.state.playerOne, this.state.playerTwo];
 
-      // console.log("current debt of current binary contract:");
-      // console.log(currentDebtOfCurrentBinaryContract);
-
-      // console.log("accountsOfTransaction");
-      // console.log(accountsOfTransaction);
-
-      // console.log("is currentDebtOfCurrentBinaryContract[0] in accountsOfTransaction?");
-      // console.log(currentDebtOfCurrentBinaryContract[0]);
-      // console.log(accountsOfTransaction.includes(String(currentDebtOfCurrentBinaryContract[0])));
-
-      // console.log("is currentDebtOfCurrentBinaryContract[2] in accountsOfTransaction?");
-      // console.log(currentDebtOfCurrentBinaryContract[2] in accountsOfTransaction);
-
-      // currentDebtOfCurrentBinaryContract[0] == playerOne, [2] == playerTwo. Note: [1] == providedAmount
-      if (accountsOfTransaction.includes(String(currentDebtOfCurrentBinaryContract[0])) && accountsOfTransaction.includes(String(currentDebtOfCurrentBinaryContract[2]))) {
+      if (accountsOfTransaction.includes(String(currentDebtOfCurrentBinaryContract.debtor)) && accountsOfTransaction.includes(String(currentDebtOfCurrentBinaryContract.creditor))) {
         // it means that the contract already exist
 
         await currentBinaryContract.methods
@@ -304,16 +267,13 @@ class Test extends Component {
             gas: "2000000",
           });
 
-        contractExists = true;
+        contractExisted = true;
 
-        // we assign a zeroAddress to deployedContractAddress as it was not deployed (it was already existed)
-        // TODO Omer: change move the method from ProfileContract to BinaryContract!!
-        deployedContractAddress = await profile.methods.getZeroAddress().call();
         break;
       }
-    } // end of for loop
+    } // end of for loop - now we know if the contract existed or not
 
-    if (!contractExists) {
+    if (!contractExisted) {
       // deploy a binaryContract
       await profile.methods
         .createBinaryContract(
@@ -329,49 +289,30 @@ class Test extends Component {
       console.log("Binary contract was created successfully!");
 
       deployedContractAddress = await profile.methods.getLastContract().call();
-
-      // ** it will not be necessary after the making the BinaryCcontract's constructor call AddTransaction ** //
-      // const addresses = await profile.methods.getContracts().call();
-      // let binaryContractAddress = addresses[addresses.length - 1];
-      // let binaryContract = await new web3.eth.Contract(
-      //   JSON.parse(compiledBinaryContract.interface),
-      //   binaryContractAddress
-      // );
-
-      // await binaryContract.methods
-      //   .addTransaction(
-      //     playerOne,
-      //     6,
-      //     playerOne,
-      //   )
-      //   .send({
-      //     from: accounts[0],
-      //     gas: "2000000",
-      //   });
     }
 
-    let addressToUse;
-
-    if (contractExists) {
-      addressToUse = existdContractAddress;
-    } else {
-      addressToUse = deployedContractAddress;
-    }
-
+    let currentBinaryContractAddress = contractExisted ? existedContractAddress : deployedContractAddress;
     let currentBinaryContract = await new web3.eth.Contract(
       JSON.parse(compiledBinaryContract.interface),
-      addressToUse
+      currentBinaryContractAddress
     );
-
-    // console.log(deployedContractAddress);
 
     console.log("Our currentDebt:");
     console.log(await currentBinaryContract.methods.getCurrentDebt().call());
+
+    console.log("Our CurrentDebtorAddress:");
+    console.log(await currentBinaryContract.methods.getCurrentDebtorAddress().call());
+
+    console.log("Our CurrentCreditorAddress:");
+    console.log(await currentBinaryContract.methods.getCurrentCreditorAddress().call());
 
     let friendsProfile = new web3.eth.Contract(
       profileAbi,
       this.state.playerTwo
     );
+
+    // we assign a zeroAddress if the contract already existed. Otherwise, the deployed contract address
+    let newContractAddress = contractExisted ? await profile.methods.getZeroAddress().call() : deployedContractAddress;
 
     makeBatchRequest([ // remove both of the exchanges in a batch request.
 
@@ -381,7 +322,7 @@ class Test extends Component {
 
       // We call this method in order to remove friend's exchange (solidity method)
       // TODO: when implementing it with the actual frontend, we should send the actual index instead of "0"
-      friendsProfile.methods.confirmDebtRequestNotRestricted(0, deployedContractAddress).send,
+      friendsProfile.methods.confirmDebtRequestNotRestricted(0, newContractAddress).send,
     ])
     function makeBatchRequest(calls) {
       let batch = new web3.BatchRequest();
@@ -398,123 +339,7 @@ class Test extends Component {
       })
       batch.execute()
     }
-
-    // await friendsProfile.methods
-    //   .confirmDebtRequestNotRestricted(0, deployedContractAddress)
-    //   .send({
-    //     from: accounts[0],
-    //     gas: "4000000",
-    //   });
-
-    // await profile.methods
-    //   .confirmDebtRequest(0)
-    //   .send({
-    //     from: accounts[0],
-    //     gas: "4000000",
-    //   });
-
-
-
-
-    // // Getting a reference to a friendsProfile
-    // const friendsProfile = new web3.eth.Contract(
-    //   profileAbi,
-    //   this.state.playerTwo
-    // );
-
-    // // Sending friend requests
-    // await friendsProfile.methods
-    //   .addDebtRequestNotRestricted(playerOne)
-    //   .send({ from: accounts[0], gas: 1000000 });
-
-    // console.log("debt request was successfully added at friend's profile");
-
-    // // let friendsExchanges = await friendsProfile.methods
-    // //   .getAllExchanges()
-    // //   .call();
-
-    // // Sending profile requests
-    // await profile.methods
-    //   .addDebtRequest(this.state.playerOne)
-    //   .send({ from: accounts[0], gas: 1000000 });
-
-    // // const ourExchanges = await profile.methods.getAllExchanges().call();
-
-    // // console.log(ourExchanges);
-    // // console.log(friendsExchanges);
-    // console.log(await profile.methods.getAllExchanges().call());
-    // console.log(await friendsProfile.methods.getAllExchanges().call());
   };
-
-  //////////////////////////////////////////////////////////////////////////////////////
-  // Testing deploying a contract
-  onDeployingAContract = async (event) => {
-    event.preventDefault();
-
-    // Getting accounts list
-    const accounts = await web3.eth.getAccounts();
-
-    // In case we would like to deploy the contract
-    await profile.methods
-      .createBinaryContract(
-        playerOne,
-        4,
-        playerOne
-      )
-      .send({
-        from: accounts[0],
-        gas: "4000000",
-      });
-
-    console.log("Binary contract was created successfully!");
-
-    const addresses = await profile.methods.getContracts().call();
-    let binaryContractAddress = addresses[addresses.length - 1];
-    let binaryContract = await new web3.eth.Contract(
-      JSON.parse(compiledBinaryContract.interface),
-      binaryContractAddress
-    );
-
-    await binaryContract.methods
-      .addTransaction(
-        playerOne,
-        6,
-        playerOne,
-        // 6
-      )
-      .send({
-        from: accounts[0],
-        gas: "2000000",
-      });
-
-    await binaryContract.methods
-      .addTransaction(
-        playerOne,
-        8,
-        playerOne,
-        // 6
-      )
-      .send({
-        from: accounts[0],
-        gas: "2000000",
-      });
-
-    console.log("Getting the current debt:");
-    console.log(await binaryContract.methods.getCurrentDebt().call());
-  };
-
-  //////////////////////////////////////////////////////////////////////////////////////
-
-  // Getting my contracts
-  onCheckMyContracts = async (event) => {
-    event.preventDefault();
-
-    // Getting accounts list
-    const accounts = await web3.eth.getAccounts();
-
-    console.log("your contracts are:");
-    console.log(await profile.methods.getContracts().call());
-  }
 
   //////////////////////////////////////////////////////////////////////////////////////
 
@@ -522,15 +347,90 @@ class Test extends Component {
   onCheckMyExchanges = async (event) => {
     event.preventDefault();
 
-    // Getting accounts list
-    const accounts = await web3.eth.getAccounts();
-
     console.log("your exchanges are:");
     console.log(await profile.methods.getAllExchanges().call());
   }
+  //////////////////////////////////////////////////////////////////////////////////////
+
+  // Getting my contracts
+  onCheckMyContracts = async (event) => {
+    event.preventDefault();
+
+    console.log("your contracts are:");
+    console.log(await profile.methods.getContracts().call());
+  }
+  //////////////////////////////////////////////////////////////////////////////////////
+
+  // Remove Exchanges list for both our exchanges and friend exchanges
+  onRemoveExchangesList = async (event) => {
+    event.preventDefault();
+
+    // Getting accounts list
+    const accounts = await web3.eth.getAccounts();
+
+    // Getting a reference to a friendsProfile - NOTE: it will work only if the user provided us playerTwo's address
+    const friendsProfile = new web3.eth.Contract(
+      profileAbi,
+      this.state.playerTwo
+    );
+
+    makeBatchRequest([ // remove both of the exchanges in a batch request.
+      profile.methods.removeAllExchanges().send,
+      friendsProfile.methods.removeAllExchanges().send,
+    ])
+    function makeBatchRequest(calls) {
+      let batch = new web3.BatchRequest();
+
+      calls.map(call => {
+        return new Promise((res, rej) => {
+          let req = call.request({ from: accounts[0], gas: "2000000" }, (err, data) => {
+            if (err) rej(err);
+            else res(data)
+          });
+          batch.add(req)
+        })
+      })
+      batch.execute()
+    }
+  };
+
+  //////////////////////////////////////////////////////////////////////////////////////
+  // Remove Contracts list for both our contracts and friend contracts
+  onRemoveContractsList = async (event) => {
+    event.preventDefault();
+
+    // Getting accounts list
+    const accounts = await web3.eth.getAccounts();
+
+    // Getting a reference to a friendsProfile - NOTE: it will work only if the user provided us playerTwo's address
+    const friendsProfile = new web3.eth.Contract(
+      profileAbi,
+      this.state.playerTwo
+    );
+
+    makeBatchRequest([ // remove both of the exchanges in a batch request.
+      profile.methods.removeContracts().send,
+      friendsProfile.methods.removeContracts().send,
+    ])
+    function makeBatchRequest(calls) {
+      let batch = new web3.BatchRequest();
+
+      calls.map(call => {
+        return new Promise((res, rej) => {
+          let req = call.request({ from: accounts[0], gas: "2000000" }, (err, data) => {
+            if (err) rej(err);
+            else res(data)
+          });
+          batch.add(req)
+        })
+      })
+      batch.execute()
+    }
+  };
 
   ///////////////////////////////////////////////////////////////////////////////////
 
+  // All the handlers:
 
   handleChangeFriendAddress = (event) => {
     event.preventDefault();
@@ -541,32 +441,72 @@ class Test extends Component {
     event.preventDefault();
     this.setState({ friendRequestIndex: event.target.value });
   };
+
   handleChangePlayerOne = (event) => {
     event.preventDefault();
     this.setState({ playerOne: event.target.value });
   };
+
   handleChangeProvidedAmount = (event) => {
     event.preventDefault();
     this.setState({ providedAmount: event.target.value });
   };
+
   handleChangePlayerTwo = (event) => {
     event.preventDefault();
     this.setState({ playerTwo: event.target.value });
   };
-  // handleChangeValidityInDays = (event) => {
-  //   event.preventDefault();
-  //   this.setState({ validityInDays: event.target.value });
-  // };
 
   render() {
     return (
       <div>
-        <h2>Lottery Contract</h2>
+        <h2>Friends Part</h2>
+        <form onSubmit={this.onSubmitAddFriendRequest}>
+          <label>
+            Add a friend: insert here the friend's address
+             <input
+              type="text"
+              value={this.state.friendsAddress}
+              onChange={this.handleChangeFriendAddress}
+              name="name"
+            />
+          </label>
+          <input type="submit" value="Send a friend Request!" />
+        </form>
+
+        <form onSubmit={this.onSubmitConfirmFriendRequest}>
+          <label>
+            Confirm a friend request (insert friend's address)
+             <input
+              type="text"
+              value={this.state.friendsAddress}
+              onChange={this.handleChangeFriendAddress}
+              name="name"
+            />
+          </label>
+          <input type="submit" value="Confirm a friend Request!" />
+        </form>
+
+        <form onSubmit={this.onCheckMyFriends}>
+          <label>
+            Click here to check your Friends!
+          </label>
+          <input type="submit" value="Check your Friends!" />
+        </form>
+
+        <form onSubmit={this.onRemoveFriendsList}>
+          <label>
+            Click here to remove your Friends!
+          </label>
+          <input type="submit" value="Remove your Friends!" />
+        </form>
         <hr />
+
+        <h2>BinaryContract Part</h2>
 
         <form onSubmit={this.onSubmitAddDebtRequest}>
           <label>
-            playerOne-amount-playerTwo-0
+            playerOne-amount-playerTwo
              <input
               type="text"
               value={this.state.playerOne}
@@ -585,43 +525,8 @@ class Test extends Component {
               onChange={this.handleChangePlayerTwo}
               name="name"
             />
-            {/* <input
-              type="text"
-              value={this.state.validityInDays}
-              onChange={this.handleChangeValidityInDays}
-              name="name"
-            /> */}
           </label>
           <input type="submit" value="Send a Debt Request!" />
-          {/* <h1>{this.state.message}</h1> */}
-        </form>
-
-        <form onSubmit={this.onCheckMyContracts}>
-          <label>
-            Click here to check your contracts!
-          </label>
-          <input type="submit" value="Check your contracts!" />
-        </form>
-
-        <form onSubmit={this.onCheckMyExchanges}>
-          <label>
-            Click here to check your Exchanges!
-          </label>
-          <input type="submit" value="Check your Exchanges!" />
-        </form>
-
-        <form onSubmit={this.onRemoveExchangesList}>
-          <label>
-            Click here to remove your Exchanges!
-          </label>
-          <input type="submit" value="Remove your Exchanges!" />
-        </form>
-
-        <form onSubmit={this.onRemoveContractsList}>
-          <label>
-            Click here to remove your Contracts!
-          </label>
-          <input type="submit" value="Remove your Contracts!" />
         </form>
 
         <form onSubmit={this.onSubmitConfirmDebtRequest}>
@@ -648,6 +553,35 @@ class Test extends Component {
           </label>
           <input type="submit" value="Confirm a Debt Request!" />
         </form>
+
+        <form onSubmit={this.onCheckMyContracts}>
+          <label>
+            Click here to check your contracts!
+          </label>
+          <input type="submit" value="Check your contracts!" />
+        </form>
+
+        <form onSubmit={this.onCheckMyExchanges}>
+          <label>
+            Click here to check your Exchanges!
+          </label>
+          <input type="submit" value="Check your Exchanges!" />
+        </form>
+
+        <form onSubmit={this.onRemoveContractsList}>
+          <label>
+            Click here to remove your Contracts!
+          </label>
+          <input type="submit" value="Remove your Contracts!" />
+        </form>
+
+        <form onSubmit={this.onRemoveExchangesList}>
+          <label>
+            Click here to remove your Exchanges!
+          </label>
+          <input type="submit" value="Remove your Exchanges!" />
+        </form>
+
       </div>
     );
   }

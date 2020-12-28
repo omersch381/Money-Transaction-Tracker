@@ -16,7 +16,6 @@ contract ProfileContract{
         uint creationDate;
     }
 
-    // TODO: decide if we should remove the exchanges after they are done
     struct Exchange{
         ExchangeDetails exchangeDetails;
         ExchangePurpose exchangePurpose;
@@ -179,14 +178,14 @@ contract ProfileContract{
     // I run for my own ProfileContract
     function confirmFriendRequest(uint friendExchangeIndex) public{
         Exchange memory exchangeToConfirm = exchanges[friendExchangeIndex];
-        friends.push(exchangeToConfirm.exchangeDetails.source);
+        friends.push(exchangeToConfirm.exchangeDetails.destination);
         removeExchange(friendExchangeIndex);
     }
 
     // I run from other's ProfileContract
     function confirmFriendRequestNotRestricted(uint friendExchangeIndex) public {
         Exchange memory exchangeToConfirm = exchanges[friendExchangeIndex];
-        friends.push(exchangeToConfirm.exchangeDetails.destination);
+        friends.push(exchangeToConfirm.exchangeDetails.source);
         removeExchange(friendExchangeIndex);
     }
 
@@ -314,58 +313,16 @@ contract BinaryContract{
     address playerTwo;
 
     ContractDebt currentDebt;
-    // address debtor;
-    // address creditor;
-    // uint amountOwned;
 
     Transaction[] binContractTransactionsLog;
 
+    // E.g. BinaryContract(player1, 2, player2) == deploy a new contract, where player 1 owes 2 shekels to player 2
     function BinaryContract(address providedCreditor, uint amount, address providedDebtor) public{
         playerOne = providedDebtor;
         playerTwo = providedCreditor;
 
         addTransaction(providedCreditor, amount, providedDebtor);
     }
-
-    // function getNumberForTestingOnly() public view returns (uint) {
-    //     return validityInDays;
-    // }
-
-    // E.g. BinaryContract(player1, 2, player2) == deploy a new contract, where player 1 owes 2 shekels to player 2
-    // function setArguments(address providedCreditor, uint amount, address providedDebtor) public {
-    //     // creationDate = block.timestamp;
-
-    //     // if (providedValidityInDays == 0)
-    //     //     validityInDays = 365;
-    //     // else
-    //     //     validityInDays = providedValidityInDays;
-
-    //     debtor = providedDebtor;
-    //     creditor = providedCreditor;
-    //     amountOwned = amount;
-
-    //     addTransaction(providedPlayerOne, amount, providedPlayerTwo);
-    // }
-
-    // // E.g. BinaryContract(player1, 2, player2) == deploy a new contract, where player 1 owes 2 shekels to player 2
-    // function setArguments(address providedPlayerOne) public {
-    //     // creationDate = block.timestamp;
-
-    //     // if (providedValidityInDays == 0)
-    //     //     validityInDays = 365;
-    //     // else
-    //     //     validityInDays = providedValidityInDays;
-
-    //     playerOne = providedPlayerOne;
-
-    //     currentDebt.debtor = providedPlayerOne;
-    //     currentDebt.creditor = providedPlayerOne;
-    //     currentDebt.amountOwned = 6;
-
-    //     // playerTwo = providedPlayerTwo;
-
-    //     // addTransaction(providedPlayerOne, amount, providedPlayerTwo);
-    // }
 
     function addTransaction (address sender, uint amount, address receiver) public {
         Transaction memory transaction = Transaction({
@@ -408,28 +365,30 @@ contract BinaryContract{
         currentDebt.creditor = newCreditor;
     }
 
-    // function getCurrentDebtorAddress() public ifValid returns(address){
-    //     return currentDebt.debtor;
-    // }
+    function getCurrentDebtorAddress() public view returns(address){
+        return currentDebt.debtor;
+    }
 
+    // not implemented yet
     //// function getCurrentDebtorName() public view returns(string memory){
     ////     //return currentDebt.debtor name
     //// }
 
-    // function getCurrentCreditorAddress() public ifValid returns(address){
-    //     return currentDebt.creditor;
-    // }
+    function getCurrentCreditorAddress() public view returns(address){
+        return currentDebt.creditor;
+    }
 
+    // not implemented yet
     //// function getCurrentCreditorName() public view returns(string memory){
     ////     //return currentDebt.creditor name
     //// }
 
-    // function getCurrentDebtAmount() public view returns(uint){
-    //     return currentDebt.amountOwned;
-    // }
+    function getCurrentDebtAmount() public view returns(uint){
+        return currentDebt.amountOwned;
+    }
 
-    function getCurrentDebt() public view returns(address, uint, address){
-        return (currentDebt.debtor, currentDebt.amountOwned, currentDebt.creditor);
+    function getCurrentDebt() public view returns(ContractDebt){
+        return currentDebt;
     }
 
     modifier ifValid(){

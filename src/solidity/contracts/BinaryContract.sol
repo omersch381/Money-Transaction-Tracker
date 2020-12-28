@@ -11,70 +11,29 @@ contract BinaryContract{
 
     // We have that struct as it stores the current contract status (the "sum" of all the contract's transactions)
     // It saves power/money for the caller - every time a user adds a debt - it changes the ContractDebt as well
-    // struct ContractDebt{
-    //     address debtor;
-    //     address creditor;
-    //     uint amountOwned;
-    // }
+    struct ContractDebt{
+        address debtor;
+        address creditor;
+        uint amountOwned;
+    }
 
     uint creationDate;
     uint validityInDays;
     bool isValid = true;
-    // address playerOne;
-    // address playerTwo;
+    address playerOne;
+    address playerTwo;
 
-    // ContractDebt currentDebt;
-    address debtor;
-    address creditor;
-    uint amountOwned;
+    ContractDebt currentDebt;
 
     Transaction[] binContractTransactionsLog;
 
-    function BinaryContract(address providedCreditor, uint amount, address providedDebtor) public{
-        debtor = providedDebtor;
-        creditor = providedCreditor;
-        amountOwned = amount;
-    }
-
-    // function getNumberForTestingOnly() public view returns (uint) {
-    //     return validityInDays;
-    // }
-
     // E.g. BinaryContract(player1, 2, player2) == deploy a new contract, where player 1 owes 2 shekels to player 2
-    // function setArguments(address providedCreditor, uint amount, address providedDebtor) public {
-    //     // creationDate = block.timestamp;
+    function BinaryContract(address providedCreditor, uint amount, address providedDebtor) public{
+        playerOne = providedDebtor;
+        playerTwo = providedCreditor;
 
-    //     // if (providedValidityInDays == 0)
-    //     //     validityInDays = 365;
-    //     // else
-    //     //     validityInDays = providedValidityInDays;
-
-    //     debtor = providedDebtor;
-    //     creditor = providedCreditor;
-    //     amountOwned = amount;
-
-    //     addTransaction(providedPlayerOne, amount, providedPlayerTwo);
-    // }
-
-    // // E.g. BinaryContract(player1, 2, player2) == deploy a new contract, where player 1 owes 2 shekels to player 2
-    // function setArguments(address providedPlayerOne) public {
-    //     // creationDate = block.timestamp;
-
-    //     // if (providedValidityInDays == 0)
-    //     //     validityInDays = 365;
-    //     // else
-    //     //     validityInDays = providedValidityInDays;
-
-    //     playerOne = providedPlayerOne;
-
-    //     currentDebt.debtor = providedPlayerOne;
-    //     currentDebt.creditor = providedPlayerOne;
-    //     currentDebt.amountOwned = 6;
-
-    //     // playerTwo = providedPlayerTwo;
-
-    //     // addTransaction(providedPlayerOne, amount, providedPlayerTwo);
-    // }
+        addTransaction(providedCreditor, amount, providedDebtor);
+    }
 
     function addTransaction (address sender, uint amount, address receiver) public {
         Transaction memory transaction = Transaction({
@@ -91,54 +50,56 @@ contract BinaryContract{
 
     function updateContractDebt (address sender, uint amount, address receiver) public {
         if(binContractTransactionsLog.length != 1){ // in the constructor we just pushed the only transaction
-            if (debtor != sender){ // means the debtor now in a bigger debt
-            amountOwned += amount;
+            if (currentDebt.debtor != sender){ // means the debtor now in a bigger debt
+            currentDebt.amountOwned += amount;
             } else { // means the debtor is the sender
-                if (amount > amountOwned){
+                if (amount > currentDebt.amountOwned){
                      updateDebtor(receiver);
                      updateCreditor(sender);
-                     amountOwned =  amount - amountOwned;
+                     currentDebt.amountOwned =  amount - currentDebt.amountOwned;
                 } else{
-                    amountOwned -= amount;
+                    currentDebt.amountOwned -= amount;
                 }
             }
         } else {
-            debtor = receiver;
-            creditor = sender;
-            amountOwned = amount;
+            currentDebt.debtor = receiver;
+            currentDebt.creditor = sender;
+            currentDebt.amountOwned = amount;
         }
     }
 
     function updateDebtor(address newDebtor) public {
-        debtor = newDebtor;
+        currentDebt.debtor = newDebtor;
     }
 
     function updateCreditor(address newCreditor) public {
-        creditor = newCreditor;
+        currentDebt.creditor = newCreditor;
     }
 
-    // function getCurrentDebtorAddress() public ifValid returns(address){
-    //     return currentDebt.debtor;
-    // }
+    function getCurrentDebtorAddress() public view returns(address){
+        return currentDebt.debtor;
+    }
 
+    // not implemented yet
     //// function getCurrentDebtorName() public view returns(string memory){
     ////     //return currentDebt.debtor name
     //// }
 
-    // function getCurrentCreditorAddress() public ifValid returns(address){
-    //     return currentDebt.creditor;
-    // }
+    function getCurrentCreditorAddress() public view returns(address){
+        return currentDebt.creditor;
+    }
 
+    // not implemented yet
     //// function getCurrentCreditorName() public view returns(string memory){
     ////     //return currentDebt.creditor name
     //// }
 
-    // function getCurrentDebtAmount() public view returns(uint){
-    //     return currentDebt.amountOwned;
-    // }
+    function getCurrentDebtAmount() public view returns(uint){
+        return currentDebt.amountOwned;
+    }
 
-    function getCurrentDebt() public view returns(address, uint, address){
-        return (debtor, amountOwned, creditor);
+    function getCurrentDebt() public view returns(ContractDebt){
+        return currentDebt;
     }
 
     modifier ifValid(){
