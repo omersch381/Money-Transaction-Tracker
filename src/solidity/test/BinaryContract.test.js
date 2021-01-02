@@ -31,14 +31,13 @@ describe('BinaryContracts API method tests', () => {
     });
 
     it('testing API GET methods', async () => {
+
+        // Checking getter methods
         assert.strictEqual(accounts[1], await binaryContract.methods.getCurrentDebtorAddress().call());
         assert.strictEqual(accounts[0], await binaryContract.methods.getCurrentCreditorAddress().call());
         assert.strictEqual(binaryContractInitialDebt, await binaryContract.methods.getCurrentDebtAmount().call());
 
-        let currentContractDebt = await binaryContract.methods.getCurrentDebt().call();
-        assert.strictEqual(accounts[1], currentContractDebt.debtor);
-        assert.strictEqual(accounts[0], currentContractDebt.creditor);
-        assert.strictEqual(binaryContractInitialDebt, currentContractDebt.amountOwned);
+        await assertCurrentDebt(accounts[1], binaryContractInitialDebt, accounts[0]);
 
         let binContractTransactionsLog = await binaryContract.methods.getAllTransations().call();
         assert.strictEqual(1, binContractTransactionsLog.length);
@@ -67,39 +66,54 @@ describe('BinaryContracts API method tests', () => {
         await binaryContract.methods.updateContractDebt(accounts[0], binaryContractInitialDebt, accounts[1]).send({
             from: accounts[0],
         })
-        let currentContractDebt = await binaryContract.methods.getCurrentDebt().call();
-        assert.strictEqual(accounts[1], currentContractDebt.debtor);
-        assert.strictEqual(accounts[0], currentContractDebt.creditor);
-        assert.strictEqual(binaryContractInitialDebt, currentContractDebt.amountOwned);
+        await assertCurrentDebt(accounts[1], binaryContractInitialDebt, accounts[0]);
 
         // If we use updateContractDebt when the transactionsLog is empty, it just sets the currentContract values to
         // what the user sent. So after this stub addTransaction call, we could update the actual currentDebt.
-        await binaryContract.methods.addTransaction(accounts[0], "0", accounts[1]).send({
-            from: accounts[0],
-            gas: "1000000"
-        })
+        await addTransaction(accounts[0], 0, accounts[1]);
 
         await binaryContract.methods.updateContractDebt(accounts[0], binaryContractInitialDebt, accounts[1]).send({
             from: accounts[0],
         })
 
-        currentContractDebt = await binaryContract.methods.getCurrentDebt().call();
-        assert.strictEqual(accounts[1], currentContractDebt.debtor);
-        assert.strictEqual(accounts[0], currentContractDebt.creditor);
-        assert.strictEqual(String(2 * binaryContractInitialDebt), currentContractDebt.amountOwned);
+        await assertCurrentDebt(accounts[1], 2 * binaryContractInitialDebt, accounts[0]);
     });
 
 
     it('testing addTransaction method', async () => {
-        let currentContractDebt = await binaryContract.methods.getCurrentDebt().call();
-        assertCurrentDebt(currentContractDebt, accounts[1], binaryContractInitialDebt, accounts[0]);
 
-        await binaryContract.methods.addTransaction(accounts[0], binaryContractInitialDebt, accounts[1]).call();
+        // means that accounts[1] owes binaryContractInitialDebt to accounts[0]
+        await assertCurrentDebt(accounts[1], binaryContractInitialDebt, accounts[0]);
+
+        // send binaryContractInitialDebt from accounts[0] to accounts[1]
+        await addTransaction(accounts[0], binaryContractInitialDebt, accounts[1]);
+
+        await assertCurrentDebt(accounts[1], 2 * binaryContractInitialDebt, accounts[0]);
+
+        await addTransaction(accounts[1], 3 * binaryContractInitialDebt, accounts[0]);
+
+        // now accounts[0] owes binaryContractInitialDebt to accounts[1]
+        await assertCurrentDebt(accounts[0], binaryContractInitialDebt, accounts[1]);
+
+        await addTransaction(accounts[0], binaryContractInitialDebt, accounts[1]);
+
+        // the debt/loan is settled
+        await assertCurrentDebt(accounts[0], 0, accounts[1]);
     });
-
-    function assertCurrentDebt(currentDebt, debtor, amount, creditor) {
-        assert.strictEqual(debtor, currentDebt.debtor);
-        assert.strictEqual(creditor, currentDebt.creditor);
-        assert.strictEqual(amount, currentDebt.amountOwned);
-    }
 });
+
+async function addTransaction(sender, amountToSend, receiver) {
+    let amountToSendAsAString = String(amountToSend);
+    await binaryContract.methods.addTransaction(sender, amountToSendAsAString, receiver).send({
+        from: accounts[0],
+        gas: "1000000"
+    });
+}
+
+async function assertCurrentDebt(debtor, amount, creditor) {
+    let amountAsAString = String(amount);
+    let currentDebt = await binaryContract.methods.getCurrentDebt().call();
+    assert.strictEqual(debtor, currentDebt.debtor);
+    assert.strictEqual(creditor, currentDebt.creditor);
+    assert.strictEqual(amountAsAString, currentDebt.amountOwned);
+}
