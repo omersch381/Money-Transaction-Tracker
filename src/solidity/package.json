@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha -g ProfileContracts"
+    "test": "mocha"
   },
   "author": "",
   "license": "ISC",
