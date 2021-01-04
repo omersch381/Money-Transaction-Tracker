@@ -338,7 +338,7 @@ contract BinaryContract{
     }
 
     function updateContractDebt (address sender, uint amount, address receiver) public {
-        if(binContractTransactionsLog.length != 1){ // in the constructor we just pushed the only transaction
+        if(binContractTransactionsLog.length > 1){ // in the constructor we just pushed the only transaction
             if (currentDebt.debtor != sender){ // means the debtor now in a bigger debt
             currentDebt.amountOwned += amount;
             } else { // means the debtor is the sender
@@ -389,6 +389,10 @@ contract BinaryContract{
 
     function getCurrentDebt() public view returns(ContractDebt){
         return currentDebt;
+    }
+
+    function getAllTransations() public view returns (Transaction[] memory){
+        return binContractTransactionsLog;
     }
 
     modifier ifValid(){

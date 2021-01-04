@@ -2,15 +2,13 @@ const assert = require('assert');
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
 const web3 = new Web3(ganache.provider());
-const { assertRequest, getAddress, RequestPurpose } = require('./Utils');
+const { assertRequest, getAddress, RequestPurpose, compiledBinaryContract } = require('./Utils');
 
 const compiledProfileContract = require('../build/ProfileContract.json');
 
 let accounts;
 let profileContractA;
 let profileContractB;
-let binaryContractA;
-let binaryContractB;
 let amountToPass = "6";
 
 beforeEach(async () => {
@@ -21,114 +19,142 @@ beforeEach(async () => {
     profileContractB = await deployAProfileContract();
 });
 
-describe('ProfileContracts API method tests', () => {
+describe('ProfileContracts debts API methods tests', () => {
 
     it('test add debt requests', async () => {
-        await sendDebtRequestsFromLeftToRight(profileContractA, profileContractB);
+        await sendDebtRequestsFromLeftToRight(profileContractA, amountToPass, profileContractB);
 
-        let exchangesOfA = await profileContractA.methods.getAllExchanges().call();
-        let exchangesOfB = await profileContractB.methods.getAllExchanges().call();
+        let requestsOfA = await profileContractA.methods.getAllExchanges().call();
+        let requestsOfB = await profileContractB.methods.getAllExchanges().call();
 
-        assertDebtRequest(exchangesOfA, getAddress(profileContractA), getAddress(profileContractB), getAddress(profileContractA), getAddress(profileContractB), amountToPass);
-        assertDebtRequest(exchangesOfB, getAddress(profileContractA), getAddress(profileContractB), getAddress(profileContractA), getAddress(profileContractB), amountToPass);
+        assertDebtRequest(requestsOfA, getAddress(profileContractA), getAddress(profileContractB), getAddress(profileContractA), getAddress(profileContractB), amountToPass);
+        assertDebtRequest(requestsOfB, getAddress(profileContractA), getAddress(profileContractB), getAddress(profileContractA), getAddress(profileContractB), amountToPass);
     });
 
-    // it('test friend confirmations', async () => {
+    it('test add debt confirmations', async () => {
 
-    //     // Note: the order matters!! leftToRight !== rightToLeft
-    //     await sendFriendRequestsFromLeftToRight(profileContractA, profileContractB);
-    //     await confirmFriendRequestsFromLeftToRight(profileContractA, profileContractB);
+        // Note: the order matters!! leftToRight !== rightToLeft
+        // On the first time we call these methods, a BinaryContract will be deployed because it doesn't already exist.
+        await sendDebtRequestsFromLeftToRight(profileContractA, amountToPass, profileContractB);
+        await confirmDebtRequestFromLeftToRight(profileContractA, amountToPass, profileContractB);
 
-    //     let friendsOfA = await profileContractA.methods.getFriends().call();
-    //     let friendsOfB = await profileContractB.methods.getFriends().call();
-    //     assert.strictEqual(getAddress(profileContractB), friendsOfA[0], "B is not on A's friends list in index 0");
-    //     assert.strictEqual(getAddress(profileContractA), friendsOfB[0], "A is not on B's friends list in index 0");
-    // });
+        let lastDeployedContractAddress = await profileContractA.methods.getLastContract().call();
+        let lastDeployedContract = await getContractReferenceInstance(compiledBinaryContract, lastDeployedContractAddress);
+        assert.ok(lastDeployedContract.options.address, "A BinaryContract could not be deployed!!!");
+        await assertBinaryCurrentDebt(lastDeployedContract, getAddress(profileContractB), amountToPass, getAddress(profileContractA));
 
-    // it('test friend confirmations', async () => {
+        // For the second time, a transaction will be added (and there won't be another binaryContract deployment)
+        await sendDebtRequestsFromLeftToRight(profileContractA, amountToPass, profileContractB);
+        await confirmDebtRequestFromLeftToRight(profileContractA, amountToPass, profileContractB);
 
-    //     // Note: the order matters!! leftToRight !== rightToLeft
-    //     // making friends when A is the sender and B is the confirmer
-    //     await sendFriendRequestsFromLeftToRight(profileContractA, profileContractB);
-    //     await confirmFriendRequestsFromLeftToRight(profileContractA, profileContractB);
-
-    //     let friendsOfA = await profileContractA.methods.getFriends().call();
-    //     let friendsOfB = await profileContractB.methods.getFriends().call();
-    //     assert.strictEqual(getAddress(profileContractB), friendsOfA[0], "B is not on A's friends list in index 0");
-    //     assert.strictEqual(getAddress(profileContractA), friendsOfB[0], "A is not on B's friends list in index 0");
-    // });
+        // it is the same  lastDeployedContractAddress as for the first debt request which was sent.
+        assert.strictEqual(lastDeployedContractAddress, await profileContractA.methods.getLastContract().call(), "Another BinaryContract was deployed instead of using the last one!!");
+        await assertBinaryCurrentDebt(lastDeployedContract, getAddress(profileContractB), 2 * amountToPass, getAddress(profileContractA));
+    });
 });
 
-// describe('ProfileContracts Scenario methods tests', () => {
+describe('ProfileContracts debts scenario methods tests', () => {
+    it('test add debts back and forth between 2 profiles', async () => {
 
-//     it('test friend confirmations, deletions and confirmations again', async () => {
+        // This test tests that 2 profiles can confirm 3 debts among them and have the correct currentDebt of the contract.
+        await confirmDebtFromLeftToRight(profileContractA, amountToPass, profileContractB);
+        let lastDeployedContract = await getContractReferenceInstance(compiledBinaryContract, await profileContractA.methods.getLastContract().call());
+        await assertBinaryCurrentDebt(lastDeployedContract, getAddress(profileContractB), amountToPass, getAddress(profileContractA));
 
-//         let times = 2;
+        await confirmDebtFromLeftToRight(profileContractB, 4 * amountToPass, profileContractA);
+        lastDeployedContract = await getContractReferenceInstance(compiledBinaryContract, await profileContractA.methods.getLastContract().call());
+        await assertBinaryCurrentDebt(lastDeployedContract, getAddress(profileContractA), 3 * amountToPass, getAddress(profileContractB));
 
-//         for (let i = 0; i < times; i++) {
-//             // Note: the order matters!! leftToRight !== rightToLeft
-//             // making friends when A is the sender and B is the confirmer
-//             await sendFriendRequestsFromLeftToRight(profileContractA, profileContractB);
-//             await confirmFriendRequestsFromLeftToRight(profileContractA, profileContractB);
+        await confirmDebtFromLeftToRight(profileContractA, 3 * amountToPass, profileContractB);
+        lastDeployedContract = await getContractReferenceInstance(compiledBinaryContract, await profileContractA.methods.getLastContract().call());
+        await assertBinaryCurrentDebt(lastDeployedContract, getAddress(profileContractA), 0, getAddress(profileContractB));
+    }).timeout(5000);
+});
 
-//             // making friends when B is the sender and A is the confirmer
-//             await sendFriendRequestsFromLeftToRight(profileContractB, profileContractA);
-//             await confirmFriendRequestsFromLeftToRight(profileContractB, profileContractA);
+async function confirmDebtFromLeftToRight(profileContractA, amountToPass, profileContractB) {
+    await sendDebtRequestsFromLeftToRight(profileContractA, amountToPass, profileContractB);
+    await confirmDebtRequestFromLeftToRight(profileContractA, amountToPass, profileContractB);
+}
 
-//             // asserting that both of them have completed the 2 requests successfully
-//             let friendsOfA = await profileContractA.methods.getFriends().call();
-//             let friendsOfB = await profileContractB.methods.getFriends().call();
+async function confirmDebtRequestFromLeftToRight(profileContractA, amountToPass, profileContractB) {
+    assert.ok(await doesADebtRequestBetweenLeftToRightExist(profileContractA, profileContractB), "There are no debt requests to confirm!!");
+    let contractExisted = await doesABinaryContractBetweenLeftToRightExist(profileContractA, profileContractB);
 
-//             assert.strictEqual(getAddress(profileContractB), friendsOfA[0], "B is not on A's friends list in index 0");
-//             assert.strictEqual(getAddress(profileContractB), friendsOfA[1], "B is not on A's friends list in index 1");
+    if (contractExisted) {
+        let profileAContractsAddresses = await profileContractA.methods.getContracts().call();
+        let existedBinaryContract = await getContractReferenceInstance(compiledBinaryContract, profileAContractsAddresses[0]); // we know it is on index 0 because it is testing env
+        await addTransaction(existedBinaryContract, profileContractA, amountToPass, profileContractB);
+    } else
+        await deployABinaryContract(profileContractA, profileContractA, amountToPass, profileContractB);
 
-//             assert.strictEqual(getAddress(profileContractA), friendsOfB[0], "A is not on B's friends list in index 0");
-//             assert.strictEqual(getAddress(profileContractA), friendsOfB[1], "A is not on B's friends list in index 1");
+    // we assign a zeroAddress if the contract already existed. Otherwise, the deployed contract address
+    let newContractAddress = contractExisted ? await profileContractA.methods.getZeroAddress().call() : await profileContractA.methods.getLastContract().call();
+    let numOfExchanges = (await profileContractA.methods.getAllExchanges().call()).length;
 
-//             // removing all their friends
-//             await profileContractA.methods.removeAllFriends()
-//                 .send({ from: accounts[0], gas: "1000000" });
-//             await profileContractB.methods.removeAllFriends()
-//                 .send({ from: accounts[0], gas: "1000000" });
+    profileContractA.methods.confirmDebtRequest(0) // We know that it is 0 index only because it is testing env
+        .send({ from: accounts[0], gas: "2000000" });
 
-//             friendsOfA = await profileContractA.methods.getFriends().call();
-//             friendsOfB = await profileContractB.methods.getFriends().call();
+    profileContractB.methods.confirmDebtRequestNotRestricted(0, newContractAddress) // We know that it is 0 index only because it is testing env
+        .send({ from: accounts[0], gas: "2000000" });
 
-//             assert.strictEqual(friendsOfA.length, 0);
-//             assert.strictEqual(friendsOfB.length, 0);
-//         }
-//     });
-// });
+    // we have to wait until the send methods really takes action in the blockchain and in the smart contracts
+    await waitUntilRequestTakesAction(numOfExchanges);
+}
 
-// async function confirmFriendRequestsFromLeftToRight(profileContractA, profileContractB) {
-//     // finding the friendRequest index of the request we just sent in B's pending friends list
-//     let friendRequestsOfB = await profileContractB.methods.getAllExchanges().call();
-//     let friendRequestIndexInFriendsOfB = -1;
+async function waitUntilRequestTakesAction(number) {
+    let waitingSize = 20;
 
-//     for (let index = 0; index < friendRequestsOfB.length; index++) {
-//         const friendRequest = friendRequestsOfB[index];
+    for (let numOfCurrentRequests = 0; numOfCurrentRequests < waitingSize; numOfCurrentRequests++)
+        if ((await profileContractA.methods.getAllExchanges().call()).length < number)
+            return;
+}
 
-//         if ( // if it is a friendRequest and the source is my friend
-//             friendRequest.exchangePurpose === RequestPurpose['AddFriend'] &&
-//             friendRequest.exchangeDetails.source === getAddress(profileContractA)
-//         ) {
-//             friendRequestIndexInFriendsOfB = index;
-//             break;
-//         }
-//     }
-//     assert.notStrictEqual(-1, friendRequestIndexInFriendsOfB, "Could not find the friend request of the friend.");
+async function doesADebtRequestBetweenLeftToRightExist(profileContractA, profileContractB) {
+    let profileARequests = await profileContractA.methods.getAllExchanges().call();
 
-//     // confirming the friend request
-//     await profileContractA.methods.confirmFriendRequest(0,)
-//         .send({ from: accounts[0], gas: "1000000" });
-//     await profileContractB.methods.confirmFriendRequestNotRestricted(friendRequestIndexInFriendsOfB)
-//         .send({ from: accounts[0], gas: "1000000" });
-// }
+    if (profileARequests.length == 0)
+        return false;
+
+    for (let index = 0; index < profileARequests.length; index++) {
+        let request = profileARequests[index];
+        if (request.transaction.to === getAddress(profileContractB))
+            return true;
+        else
+            return false;
+    }
+}
+
+async function doesABinaryContractBetweenLeftToRightExist(profileContractA, profileContractB) {
+    let profileAContractAddresses = await profileContractA.methods.getContracts().call();
+
+    for (var i = 0; i < profileAContractAddresses.length; i++) {
+        let currentBinaryContract = await getContractReferenceInstance(compiledBinaryContract, profileAContractAddresses[i]);
+
+        let currentDebtOfCurrentBinaryContract = await currentBinaryContract.methods.getCurrentDebt().call();
+
+        let accountsOfTransaction = [getAddress(profileContractA), getAddress(profileContractB)];
+
+        if (accountsOfTransaction.includes(String(currentDebtOfCurrentBinaryContract.debtor)) && accountsOfTransaction.includes(String(currentDebtOfCurrentBinaryContract.creditor))) {
+            // it means that the contract already exist
+
+            return true;
+        }
+    }
+    return false;
+}
+
+async function getContractReferenceInstance(compiledContract, address) {
+    return new web3.eth.Contract(
+        JSON.parse(compiledContract.interface),
+        address
+    );
+}
 
 function assertDebtRequest(requestWrapper, source, destination, transactionFrom, transactionTo, transactionAmount) {
     assertRequest(requestWrapper, source, destination, "addDebtRequest", "0", RequestPurpose['AddDebt'], transactionFrom, transactionTo, transactionAmount);
 }
-async function sendDebtRequestsFromLeftToRight(profileContractA, profileContractB){
+
+async function sendDebtRequestsFromLeftToRight(profileContractA, amountToPass, profileContractB) {
     await profileContractA.methods.addDebtRequest(getAddress(profileContractB), getAddress(profileContractA), amountToPass, getAddress(profileContractB))
         .send({ from: accounts[0], gas: "1000000" });
     await profileContractB.methods.addDebtRequestNotRestricted(getAddress(profileContractA), getAddress(profileContractA), amountToPass, getAddress(profileContractB))
@@ -144,4 +170,38 @@ async function deployAProfileContract() {
             from: accounts[0],
             gas: '3000000'
         });
+}
+
+async function deployABinaryContract(profileContract, senderAddress, amountToPass, receiverAddress) {
+    await profileContract.methods
+        .createBinaryContract(
+            getAddress(senderAddress),
+            amountToPass,
+            getAddress(receiverAddress)
+        )
+        .send({
+            from: accounts[0],
+            gas: "4000000",
+        });
+}
+
+async function addTransaction(binaryContract, profileContractA, amountToPass, profileContractB) {
+    await binaryContract.methods
+        .addTransaction(
+            getAddress(profileContractA),
+            amountToPass,
+            getAddress(profileContractB)
+        )
+        .send({
+            from: accounts[0],
+            gas: "2000000",
+        });
+}
+
+async function assertBinaryCurrentDebt(binaryContract, debtor, amount, creditor) {
+    let amountAsAString = String(amount);
+    let currentDebt = await binaryContract.methods.getCurrentDebt().call();
+    assert.strictEqual(debtor, currentDebt.debtor);
+    assert.strictEqual(creditor, currentDebt.creditor);
+    assert.strictEqual(amountAsAString, currentDebt.amountOwned);
 }

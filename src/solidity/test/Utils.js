@@ -1,5 +1,7 @@
 const assert = require('assert');
 
+exports.compiledBinaryContract = require('../build/BinaryContract.json');
+
 exports.RequestPurpose = {
     AddFriend: "0",
     AddDebt: "1",

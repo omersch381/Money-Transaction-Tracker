@@ -18,7 +18,7 @@ beforeEach(async () => {
     profileContractB = await deployAProfileContract();
 });
 
-describe('ProfileContracts API method tests', () => {
+describe('ProfileContracts friends API methods tests', () => {
 
     it('deploys 2 profileContracts', () => {
         assert.ok(profileContractA.options.address, "Could not deploy profileContractA's contract");
@@ -41,18 +41,6 @@ describe('ProfileContracts API method tests', () => {
     it('test friend confirmations', async () => {
 
         // Note: the order matters!! leftToRight !== rightToLeft
-        await sendFriendRequestsFromLeftToRight(profileContractA, profileContractB);
-        await confirmFriendRequestsFromLeftToRight(profileContractA, profileContractB);
-
-        let friendsOfA = await profileContractA.methods.getFriends().call();
-        let friendsOfB = await profileContractB.methods.getFriends().call();
-        assert.strictEqual(getAddress(profileContractB), friendsOfA[0], "B is not on A's friends list in index 0");
-        assert.strictEqual(getAddress(profileContractA), friendsOfB[0], "A is not on B's friends list in index 0");
-    });
-
-    it('test friend confirmations', async () => {
-
-        // Note: the order matters!! leftToRight !== rightToLeft
         // making friends when A is the sender and B is the confirmer
         await sendFriendRequestsFromLeftToRight(profileContractA, profileContractB);
         await confirmFriendRequestsFromLeftToRight(profileContractA, profileContractB);
@@ -64,7 +52,7 @@ describe('ProfileContracts API method tests', () => {
     });
 });
 
-describe('ProfileContracts Scenario methods tests', () => {
+describe('ProfileContracts friends scenario methods tests', () => {
 
     it('test friend confirmations, deletions and confirmations again', async () => {
 
