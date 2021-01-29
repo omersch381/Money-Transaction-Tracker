@@ -33,13 +33,12 @@ contract ProfileContract{
         uint date;
     }
 
-    // Preferences preferences;
     uint exchangeNum;
     mapping(address => string) friendsName;
     address owner;
     address[] private friends;
     Exchange[] private exchanges;
-    address[] private contracts; // == [GroupsContract(s), BinaryContract(s)]
+    address[] private contracts; // == [BinaryContract(s)]
     string[] private actionsLog;
 
     function ProfileContract() public {
@@ -59,18 +58,6 @@ contract ProfileContract{
     // // TODO implement this method as soon as we implement the rest of the things.
     // // function getActionsLog() public restricted view returns(string[] memory){
     // // }
-
-    // // // Groups section
-    // // function createGroup() public restricted{
-    // // }
-
-    // // function getGroups() public restricted view returns (address[] memory){
-    // // }
-
-    // // Exchanges section
-    // function getExchangeIndexFromExchangeId(uint exchangeId) public view returns (uint){
-    //     //TODO
-    // }
 
     function removeAllExchanges() public{
         delete exchanges;
@@ -110,8 +97,6 @@ contract ProfileContract{
             destination = address(this);
         }
 
-        //TODO: check if we need the second if statement above
-
         if (sender != address(0)){
             Transaction memory transaction = Transaction({
             from: sender,
@@ -140,8 +125,6 @@ contract ProfileContract{
         });
 
         exchanges.push(newExchange);
-
-        // return newExchange;
     }
 
     // I run for my own ProfileContract
@@ -184,9 +167,6 @@ contract ProfileContract{
         friends.push(exchangeToConfirm.exchangeDetails.source);
         removeExchange(friendExchangeIndex);
     }
-
-    // function removeFriend(address friend) public restricted isAFriend(friend) {
-    // }
 
     // for testing only
     function removeAllFriends() public {
