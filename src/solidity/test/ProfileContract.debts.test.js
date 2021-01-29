@@ -9,14 +9,16 @@ const compiledProfileContract = require('../build/ProfileContract.json');
 let accounts;
 let profileContractA;
 let profileContractB;
+let profileContractAName = "Omer";
+let profileContractBName = "Dror";
 let amountToPass = "6";
 
 beforeEach(async () => {
     accounts = await web3.eth.getAccounts();
 
-    profileContractA = await deployAProfileContract();
+    profileContractA = await deployAProfileContract(profileContractAName);
 
-    profileContractB = await deployAProfileContract();
+    profileContractB = await deployAProfileContract(profileContractBName);
 });
 
 describe('ProfileContracts debts API methods tests', () => {
@@ -161,14 +163,15 @@ async function sendDebtRequestsFromLeftToRight(profileContractA, amountToPass, p
         .send({ from: accounts[0], gas: "1000000" });
 }
 
-async function deployAProfileContract() {
+async function deployAProfileContract(profileContractName) {
     return await new web3.eth.Contract(JSON.parse(compiledProfileContract.interface))
         .deploy({
             data: compiledProfileContract.bytecode,
+            arguments: [profileContractName],
         })
         .send({
             from: accounts[0],
-            gas: '3000000'
+            gas: '4000000'
         });
 }
 

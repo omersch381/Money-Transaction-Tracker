@@ -9,13 +9,15 @@ const compiledProfileContract = require('../build/ProfileContract.json');
 let accounts;
 let profileContractA;
 let profileContractB;
+let profileContractAName = "Omer";
+let destinationName = "Dror";
 
 beforeEach(async () => {
     accounts = await web3.eth.getAccounts();
 
-    profileContractA = await deployAProfileContract();
+    profileContractA = await deployAProfileContract(profileContractAName);
 
-    profileContractB = await deployAProfileContract();
+    profileContractB = await deployAProfileContract(destinationName);
 });
 
 describe('ProfileContracts friends API methods tests', () => {
@@ -47,8 +49,9 @@ describe('ProfileContracts friends API methods tests', () => {
 
         let friendsOfA = await profileContractA.methods.getFriends().call();
         let friendsOfB = await profileContractB.methods.getFriends().call();
-        assert.strictEqual(getAddress(profileContractB), friendsOfA[0], "B is not on A's friends list in index 0");
-        assert.strictEqual(getAddress(profileContractA), friendsOfB[0], "A is not on B's friends list in index 0");
+
+        assert.strictEqual(getAddress(profileContractB), friendsOfA[0].friendAddress, "B is not on A's friends list in index 0");
+        assert.strictEqual(getAddress(profileContractA), friendsOfB[0].friendAddress, "A is not on B's friends list in index 0");
     });
 });
 
@@ -57,26 +60,25 @@ describe('ProfileContracts friends scenario methods tests', () => {
     it('test friend confirmations, deletions and confirmations again', async () => {
 
         let times = 2;
+        let sender, receiver;
 
         for (let i = 0; i < times; i++) {
             // Note: the order matters!! leftToRight !== rightToLeft
-            // making friends when A is the sender and B is the confirmer
+            // making friends when A is the sender and B is the confirmer, and then vice versa.
+
+            if (i % 2 == 0) // first time
+                sender, receiver = profileContractA, profileContractB;
+            else
+                sender, receiver = profileContractB, profileContractA;
+
             await sendFriendRequestsFromLeftToRight(profileContractA, profileContractB);
             await confirmFriendRequestsFromLeftToRight(profileContractA, profileContractB);
 
-            // making friends when B is the sender and A is the confirmer
-            await sendFriendRequestsFromLeftToRight(profileContractB, profileContractA);
-            await confirmFriendRequestsFromLeftToRight(profileContractB, profileContractA);
-
-            // asserting that both of them have completed the 2 requests successfully
             let friendsOfA = await profileContractA.methods.getFriends().call();
             let friendsOfB = await profileContractB.methods.getFriends().call();
 
-            assert.strictEqual(getAddress(profileContractB), friendsOfA[0], "B is not on A's friends list in index 0");
-            assert.strictEqual(getAddress(profileContractB), friendsOfA[1], "B is not on A's friends list in index 1");
-
-            assert.strictEqual(getAddress(profileContractA), friendsOfB[0], "A is not on B's friends list in index 0");
-            assert.strictEqual(getAddress(profileContractA), friendsOfB[1], "A is not on B's friends list in index 1");
+            assert.strictEqual(getAddress(profileContractB), friendsOfA[0].friendAddress, "B is not on A's friends list in index 0");
+            assert.strictEqual(getAddress(profileContractA), friendsOfB[0].friendAddress, "A is not on B's friends list in index 0");
 
             // removing all their friends
             await profileContractA.methods.removeAllFriends()
@@ -97,54 +99,64 @@ function assertFriendRequest(requestWrapper, source, destination) {
     assertRequest(requestWrapper, source, destination, "addFriendRequest", RequestPurpose['AddFriend']);
 }
 
-async function sendFriendRequestsFromLeftToRight(profileContractA, profileContractB) {
-    await profileContractA.methods.addFriendRequest(
-        getAddress(profileContractB),
+async function sendFriendRequestsFromLeftToRight(sourceProfileContract, destinationProfileContract) {
+    destinationName = await destinationProfileContract.methods.getName().call();
+    await sourceProfileContract.methods.addFriendRequest(
+        getAddress(destinationProfileContract),
+        destinationName,
     ).send({
         from: accounts[0],
-        gas: "1000000"
+        gas: "2000000"
     });
 
-    await profileContractB.methods.addFriendRequestNotRestricted(
-        getAddress(profileContractA),
+    await destinationProfileContract.methods.addFriendRequestNotRestricted(
+        getAddress(sourceProfileContract),
+        destinationName,
     ).send({
         from: accounts[0],
-        gas: "1000000"
+        gas: "2000000"
     });
+}
+
+async function getName(profileContract){
+    return await profileContract.methods.getName().call();
 }
 
 async function confirmFriendRequestsFromLeftToRight(profileContractA, profileContractB) {
     // finding the friendRequest index of the request we just sent in B's pending friends list
-    let friendRequestsOfB = await profileContractB.methods.getAllExchanges().call();
-    let friendRequestIndexInFriendsOfB = -1;
+    let friendRequestsOfA = await profileContractA.methods.getAllExchanges().call();
+    let friendRequestIndexInFriendsOfA = -1;
 
-    for (let index = 0; index < friendRequestsOfB.length; index++) {
-        const friendRequest = friendRequestsOfB[index];
+    for (let index = 0; index < friendRequestsOfA.length; index++) {
+        const friendRequest = friendRequestsOfA[index];
 
         if ( // if it is a friendRequest and the source is my friend
             friendRequest.exchangePurpose === RequestPurpose['AddFriend'] &&
-            friendRequest.exchangeDetails.source === getAddress(profileContractA)
+            friendRequest.exchangeDetails.destination === getAddress(profileContractB)
         ) {
-            friendRequestIndexInFriendsOfB = index;
+            friendRequestIndexInFriendsOfA = index;
             break;
         }
     }
-    assert.notStrictEqual(-1, friendRequestIndexInFriendsOfB, "Could not find the friend request of the friend.");
+    assert.notStrictEqual(-1, friendRequestIndexInFriendsOfA, "Could not find the friend request of the friend.");
+
+    const friendRequest = friendRequestsOfA[friendRequestIndexInFriendsOfA];
 
     // confirming the friend request
-    await profileContractA.methods.confirmFriendRequest(0,)
+    await profileContractA.methods.confirmFriendRequestNotRestricted(friendRequestIndexInFriendsOfA)
         .send({ from: accounts[0], gas: "1000000" });
-    await profileContractB.methods.confirmFriendRequestNotRestricted(friendRequestIndexInFriendsOfB)
+    await profileContractB.methods.confirmFriendRequest(0, profileContractAName)
         .send({ from: accounts[0], gas: "1000000" });
 }
 
-async function deployAProfileContract() {
+async function deployAProfileContract(profileContractName) {
     return await new web3.eth.Contract(JSON.parse(compiledProfileContract.interface))
         .deploy({
             data: compiledProfileContract.bytecode,
+            arguments: [profileContractName],
         })
         .send({
             from: accounts[0],
-            gas: '3000000'
+            gas: '5000000'
         });
 }

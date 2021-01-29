@@ -5,10 +5,14 @@ contract ProfileContract{
 
     enum ExchangePurpose{ AddFriend, AddDebt, DebtRotation }
 
+    // WE SHOULD ASK THE USER WHAT IS THEIR NAME AND USE IT AS SOURCE_NAME
+
     struct ExchangeDetails {
         uint exchangeId;
         address source;
+        string sourceName;
         address destination;
+        string destinationName;
         string optionalDescription;
         uint creationDate;
     }
@@ -34,15 +38,21 @@ contract ProfileContract{
     }
 
     uint exchangeNum;
-    mapping(address => string) friendsName;
     address owner;
+    string ownerName;
+    Friend[] private friendsArray;
     address[] private friends;
     Exchange[] private exchanges;
     address[] private contracts; // == [BinaryContract(s)]
     string[] private actionsLog;
 
-    function ProfileContract() public {
+    function ProfileContract(string memory name) public {
         owner = msg.sender;
+        ownerName = name;
+    }
+
+    function getName() public view returns (string memory){
+        return ownerName;
     }
 
     // /*
@@ -87,7 +97,7 @@ contract ProfileContract{
         return exchangeNum;
     }
 
-    function addExchangeNotRestricted(address source, address destination, string memory optionalDescription, ExchangePurpose purpose, address[] memory approvers, bool isApproved, address sender, uint amount, address receiver) public{
+    function addExchangeNotRestricted(address source, address destination, string memory destinationName, string memory optionalDescription, ExchangePurpose purpose, address[] memory approvers, bool isApproved, address sender, uint amount, address receiver) public{
 
         // if it runs from my ProfileContract
         if (source == address(0)) {
@@ -109,7 +119,9 @@ contract ProfileContract{
         ExchangeDetails memory newExchangeDetails = ExchangeDetails({
                 exchangeId: getExchangeUniqueId(),
                 source: source,
+                sourceName: ownerName,
                 destination: destination,
+                destinationName: destinationName,
                 optionalDescription: optionalDescription,
                 creationDate: block.timestamp
             });
@@ -128,59 +140,78 @@ contract ProfileContract{
     }
 
     // I run for my own ProfileContract
-    function addExchange(address source, address destination, string memory optionalDescription, ExchangePurpose purpose, address[] memory approvers, bool isApproved, address sender, uint amount, address receiver) public returns (Exchange memory) {
+    function addExchange(address source, address destination, string memory destinationName, string memory optionalDescription, ExchangePurpose purpose, address[] memory approvers, bool isApproved, address sender, uint amount, address receiver) public returns (Exchange memory) {
 
         // source == address(0), destination == givenDestination
-        addExchangeNotRestricted(source, destination, optionalDescription,purpose,approvers,isApproved, sender, amount, receiver);
+        addExchangeNotRestricted(source, destination, destinationName, optionalDescription,purpose,approvers,isApproved, sender, amount, receiver);
     }
 
     // Friends functions
 
     // I run from other's ProfileContract
-    function addFriendRequestNotRestricted(address source) public{
+    function addFriendRequestNotRestricted(address source, string memory destinationName) public{
         // Note: Actor A calls Actor_B's_addFriendRequest method in order to add
         // their (Actor A's) friend request on Actor_B's exchangesList.
         // No actor runs this method for themselves.
         // addExchange automatically assigns source field as this contract address.
         // Note: the 'new address[](0)' means we send 0 approvers for a friend request.
 
-        addExchangeNotRestricted(source, address(0), "addFriendRequest", ExchangePurpose.AddFriend, new address[](0), false, address(0), 0, address(0));
+        addExchangeNotRestricted(source, address(0), destinationName, "addFriendRequest", ExchangePurpose.AddFriend, new address[](0), false, address(0), 0, address(0));
     }
 
     // I run for my own ProfileContract
-    function addFriendRequest(address destination) public{
+    function addFriendRequest(address destination, string memory destinationName) public{
 
         // addExchange(source=address(0), destination=givenDestination,...)
-        addExchange(address(0), destination, "addFriendRequest", ExchangePurpose.AddFriend, new address[](0), false, address(0), 0, address(0));
+        addExchange(address(0), destination, destinationName, "addFriendRequest", ExchangePurpose.AddFriend, new address[](0), false, address(0), 0, address(0));
     }
 
     // I run for my own ProfileContract
-    function confirmFriendRequest(uint friendExchangeIndex) public{
+    // We let the confirmer choose its friend's name
+    function confirmFriendRequest(uint friendExchangeIndex, string memory friendName) public{
         Exchange memory exchangeToConfirm = exchanges[friendExchangeIndex];
-        friends.push(exchangeToConfirm.exchangeDetails.destination);
+        Friend memory newFriend = Friend({
+            friendAddress: exchangeToConfirm.exchangeDetails.source,
+            friendName: friendName
+        });
+        friendsArray.push(newFriend);
+        // friends.push(exchangeToConfirm.exchangeDetails.source);
         removeExchange(friendExchangeIndex);
+    }
+
+    function setFriendName(string memory name, address friendAddress){
+        //TODO
     }
 
     // I run from other's ProfileContract
     function confirmFriendRequestNotRestricted(uint friendExchangeIndex) public {
         Exchange memory exchangeToConfirm = exchanges[friendExchangeIndex];
-        friends.push(exchangeToConfirm.exchangeDetails.source);
+        Friend memory newFriend = Friend({
+            friendAddress: exchangeToConfirm.exchangeDetails.destination,
+            friendName: exchangeToConfirm.exchangeDetails.destinationName
+        });
+        friendsArray.push(newFriend);
+        // friends.push(exchangeToConfirm.exchangeDetails.destination);
         removeExchange(friendExchangeIndex);
     }
 
     // for testing only
     function removeAllFriends() public {
-        delete friends;
+        delete friendsArray;
     }
 
-    function getFriends() public view returns (address[] memory) {
-        return friends;
+    function getFriends() public view returns (Friend[] memory) {
+        return friendsArray;
     }
 
-    // function getFriendName(address friend) public view restricted returns (string memory name) {
-    //     return "TODO";
-    // }
-    /////////////////////////////////////////////////////////////////////////////////////
+    function getFriendName(address friendAddress) public returns (string memory name) {
+        string memory friendsName = "not found";
+        for (uint i=0; i<friendsArray.length; i++)
+            if (friendsArray[i].friendAddress == friendAddress)
+                friendsName = friendsArray[i].friendName;
+
+        return friendsName;
+    }
 
      // I run from other's ProfileContract
     function addDebtRequestNotRestricted(address source, address sender, uint amount, address receiver) public{
@@ -190,14 +221,14 @@ contract ProfileContract{
         // addExchange automatically assigns source field as this contract address.
         // Note: the 'new address[](0)' means we send 0 approvers for a Debt request.
 
-        addExchangeNotRestricted(source, address(0), "addDebtRequest", ExchangePurpose.AddDebt, new address[](0), false, sender, amount, receiver);
+        addExchangeNotRestricted(source, address(0),"", "addDebtRequest", ExchangePurpose.AddDebt, new address[](0), false, sender, amount, receiver);
     }
 
     // I run for my own ProfileContract
     function addDebtRequest(address destination, address sender, uint amount, address receiver) public{
 
         // addExchange(source=address(0), destination=givenDestination,...)
-        addExchange(address(0), destination, "addDebtRequest", ExchangePurpose.AddDebt, new address[](0), false, sender, amount, receiver);
+        addExchange(address(0), destination, "", "addDebtRequest", ExchangePurpose.AddDebt, new address[](0), false, sender, amount, receiver);
     }
 
     // I run for my own ProfileContract
@@ -253,16 +284,16 @@ contract ProfileContract{
     //     _;
     // }
 
-     modifier isAFriend(address person){
-        bool isAFriendbool = false;
-        for (uint i=0; i<friends.length; i++) {
-            if (friends[i] == person){
-                isAFriendbool = true;
-            }
-        }
-        require(isAFriendbool == true);
-        _;
-    }
+    //  modifier isAFriend(address person){
+    //     bool isAFriendbool = false;
+    //     for (uint i=0; i<friendsArray.length; i++) {
+    //         if (friendsArray[i].address == person){
+    //             isAFriendbool = true;
+    //         }
+    //     }
+    //     require(isAFriendbool == true);
+    //     _;
+    // }
 }
 
 contract BinaryContract{
