@@ -3,8 +3,6 @@ pragma experimental ABIEncoderV2;
 
 contract ProfileContract{
 
-    enum ExchangeType{ Request, Response }
-
     enum ExchangePurpose{ AddFriend, AddDebt, DebtRotation }
 
     struct ExchangeDetails {
@@ -12,7 +10,6 @@ contract ProfileContract{
         address source;
         address destination;
         string optionalDescription;
-        ExchangeType exchangeType;
         uint creationDate;
     }
 
@@ -103,7 +100,7 @@ contract ProfileContract{
         return exchangeNum;
     }
 
-    function addExchangeNotRestricted(address source, address destination, string memory optionalDescription, ExchangeType exType, ExchangePurpose purpose, address[] memory approvers, bool isApproved, address sender, uint amount, address receiver) public{
+    function addExchangeNotRestricted(address source, address destination, string memory optionalDescription, ExchangePurpose purpose, address[] memory approvers, bool isApproved, address sender, uint amount, address receiver) public{
 
         // if it runs from my ProfileContract
         if (source == address(0)) {
@@ -129,7 +126,6 @@ contract ProfileContract{
                 source: source,
                 destination: destination,
                 optionalDescription: optionalDescription,
-                exchangeType: exType,
                 creationDate: block.timestamp
             });
 
@@ -149,10 +145,10 @@ contract ProfileContract{
     }
 
     // I run for my own ProfileContract
-    function addExchange(address source, address destination, string memory optionalDescription, ExchangeType exType, ExchangePurpose purpose, address[] memory approvers, bool isApproved, address sender, uint amount, address receiver) public returns (Exchange memory) {
+    function addExchange(address source, address destination, string memory optionalDescription, ExchangePurpose purpose, address[] memory approvers, bool isApproved, address sender, uint amount, address receiver) public returns (Exchange memory) {
 
         // source == address(0), destination == givenDestination
-        addExchangeNotRestricted(source, destination, optionalDescription,exType,purpose,approvers,isApproved, sender, amount, receiver);
+        addExchangeNotRestricted(source, destination, optionalDescription,purpose,approvers,isApproved, sender, amount, receiver);
     }
 
     // Friends functions
@@ -165,14 +161,14 @@ contract ProfileContract{
         // addExchange automatically assigns source field as this contract address.
         // Note: the 'new address[](0)' means we send 0 approvers for a friend request.
 
-        addExchangeNotRestricted(source, address(0), "addFriendRequest", ExchangeType.Request, ExchangePurpose.AddFriend, new address[](0), false, address(0), 0, address(0));
+        addExchangeNotRestricted(source, address(0), "addFriendRequest", ExchangePurpose.AddFriend, new address[](0), false, address(0), 0, address(0));
     }
 
     // I run for my own ProfileContract
     function addFriendRequest(address destination) public{
 
         // addExchange(source=address(0), destination=givenDestination,...)
-        addExchange(address(0), destination, "addFriendRequest", ExchangeType.Request, ExchangePurpose.AddFriend, new address[](0), false, address(0), 0, address(0));
+        addExchange(address(0), destination, "addFriendRequest", ExchangePurpose.AddFriend, new address[](0), false, address(0), 0, address(0));
     }
 
     // I run for my own ProfileContract
@@ -214,14 +210,14 @@ contract ProfileContract{
         // addExchange automatically assigns source field as this contract address.
         // Note: the 'new address[](0)' means we send 0 approvers for a Debt request.
 
-        addExchangeNotRestricted(source, address(0), "addDebtRequest", ExchangeType.Request, ExchangePurpose.AddDebt, new address[](0), false, sender, amount, receiver);
+        addExchangeNotRestricted(source, address(0), "addDebtRequest", ExchangePurpose.AddDebt, new address[](0), false, sender, amount, receiver);
     }
 
     // I run for my own ProfileContract
     function addDebtRequest(address destination, address sender, uint amount, address receiver) public{
 
         // addExchange(source=address(0), destination=givenDestination,...)
-        addExchange(address(0), destination, "addDebtRequest", ExchangeType.Request, ExchangePurpose.AddDebt, new address[](0), false, sender, amount, receiver);
+        addExchange(address(0), destination, "addDebtRequest", ExchangePurpose.AddDebt, new address[](0), false, sender, amount, receiver);
     }
 
     // I run for my own ProfileContract
