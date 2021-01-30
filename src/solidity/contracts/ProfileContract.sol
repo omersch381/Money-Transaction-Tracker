@@ -5,13 +5,18 @@ contract ProfileContract{
 
     enum ExchangePurpose{ AddFriend, AddDebt, DebtRotation }
 
+    // MediatorAgreed is when the request was sent but neither the Creditor or the Debtor have agreed (yet)
+    // ReceiverAgreed is when both the Meditor and the Creditor have agreed (without the Debtor yet)
+    // SenderAgreed is when both the Meditor and the Debtor have agreed (without the Creditor yet)
+    // Done is when all of them have agreed -> Note: it doesn't necessarilly mean that the rotation took place!
+    enum DebtRotationStatus{ MediatorAgreed, ReceiverAgreed, SenderAgreed, Done }
+
     struct ExchangeDetails {
         uint exchangeId;
         address source;
         string sourceName;
         address destination;
         string destinationName;
-        string optionalDescription;
         uint creationDate;
     }
 
@@ -19,8 +24,7 @@ contract ProfileContract{
         ExchangeDetails exchangeDetails;
         ExchangePurpose exchangePurpose;
         Transaction transaction;
-        address[] approvers;
-        bool isApproved;
+        DebtRotation debtRotation;
     }
 
     struct Friend{
@@ -35,6 +39,13 @@ contract ProfileContract{
         uint date;
     }
 
+     struct DebtRotation {
+        address debtor;
+        address mediator;
+        address creditor;
+        DebtRotationStatus status;
+        uint amount;
+    }
     uint exchangeNum;
     address owner;
     string ownerName;
@@ -81,7 +92,6 @@ contract ProfileContract{
             exchanges[i] = exchanges[i+1];
         }
 
-        // exchanges.pop();
         delete exchanges[exchanges.length - 1];
         exchanges.length--;
     }
@@ -95,7 +105,7 @@ contract ProfileContract{
         return exchangeNum;
     }
 
-    function addExchangeNotRestricted(address source, address destination, string memory destinationName, string memory optionalDescription, ExchangePurpose purpose, address[] memory approvers, bool isApproved, address sender, uint amount, address receiver) public{
+    function addExchangeNotRestricted(address source, address destination, string memory destinationName, ExchangePurpose purpose, address sender, uint amount, address receiver, address destination2, DebtRotationStatus status) public{
 
         // if it runs from my ProfileContract
         if (source == address(0)) {
@@ -105,7 +115,7 @@ contract ProfileContract{
             destination = address(this);
         }
 
-        if (sender != address(0)){
+        if (sender != address(0)){ // Debt request handling
             Transaction memory transaction = Transaction({
             from: sender,
             to: receiver,
@@ -114,13 +124,22 @@ contract ProfileContract{
         });
         }
 
+        if (destination2 != address(0)) { // Debt Rotation handling
+            DebtRotation memory debtRotationRequest = DebtRotation({
+                debtor: destination,
+                mediator: source,
+                creditor: destination2,
+                status: status,
+                amount: amount
+            });
+        }
+
         ExchangeDetails memory newExchangeDetails = ExchangeDetails({
                 exchangeId: getExchangeUniqueId(),
                 source: source,
                 sourceName: ownerName,
                 destination: destination,
                 destinationName: destinationName,
-                optionalDescription: optionalDescription,
                 creationDate: block.timestamp
             });
 
@@ -130,18 +149,17 @@ contract ProfileContract{
             exchangeDetails: newExchangeDetails,
             exchangePurpose: purpose,
             transaction: transaction,
-            approvers: approvers,
-            isApproved: isApproved
+            debtRotation: debtRotationRequest
         });
 
         exchanges.push(newExchange);
     }
 
     // I run for my own ProfileContract
-    function addExchange(address source, address destination, string memory destinationName, string memory optionalDescription, ExchangePurpose purpose, address[] memory approvers, bool isApproved, address sender, uint amount, address receiver) public returns (Exchange memory) {
+    function addExchange(address source, address destination, string memory destinationName, ExchangePurpose purpose, address sender, uint amount, address receiver, address destination2, DebtRotationStatus status) public returns (Exchange memory) {
 
         // source == address(0), destination == givenDestination
-        addExchangeNotRestricted(source, destination, destinationName, optionalDescription,purpose,approvers,isApproved, sender, amount, receiver);
+        addExchangeNotRestricted(source, destination, destinationName,purpose, sender, amount, receiver, destination2, status);
     }
 
     // Friends functions
@@ -152,16 +170,15 @@ contract ProfileContract{
         // their (Actor A's) friend request on Actor_B's exchangesList.
         // No actor runs this method for themselves.
         // addExchange automatically assigns source field as this contract address.
-        // Note: the 'new address[](0)' means we send 0 approvers for a friend request.
 
-        addExchangeNotRestricted(source, address(0), destinationName, "addFriendRequest", ExchangePurpose.AddFriend, new address[](0), false, address(0), 0, address(0));
+        addExchangeNotRestricted(source, address(0), destinationName, ExchangePurpose.AddFriend, address(0), 0, address(0), address(0), DebtRotationStatus.Done);
     }
 
     // I run for my own ProfileContract
     function addFriendRequest(address destination, string memory destinationName) public{
 
         // addExchange(source=address(0), destination=givenDestination,...)
-        addExchange(address(0), destination, destinationName, "addFriendRequest", ExchangePurpose.AddFriend, new address[](0), false, address(0), 0, address(0));
+        addExchange(address(0), destination, destinationName, ExchangePurpose.AddFriend, address(0), 0, address(0), address(0), DebtRotationStatus.Done);
     }
 
     // I run for my own ProfileContract
@@ -217,16 +234,15 @@ contract ProfileContract{
         // their (Actor A's) Debt request on Actor_B's exchangesList.
         // No actor runs this method for themselves.
         // addExchange automatically assigns source field as this contract address.
-        // Note: the 'new address[](0)' means we send 0 approvers for a Debt request.
 
-        addExchangeNotRestricted(source, address(0),"", "addDebtRequest", ExchangePurpose.AddDebt, new address[](0), false, sender, amount, receiver);
+        addExchangeNotRestricted(source, address(0),"", ExchangePurpose.AddDebt, sender, amount, receiver, address(0),DebtRotationStatus.Done);
     }
 
     // I run for my own ProfileContract
     function addDebtRequest(address destination, address sender, uint amount, address receiver) public{
 
         // addExchange(source=address(0), destination=givenDestination,...)
-        addExchange(address(0), destination, "", "addDebtRequest", ExchangePurpose.AddDebt, new address[](0), false, sender, amount, receiver);
+        addExchange(address(0), destination, "", ExchangePurpose.AddDebt, sender, amount, receiver, address(0), DebtRotationStatus.Done);
     }
 
     // I run for my own ProfileContract
@@ -261,7 +277,6 @@ contract ProfileContract{
         // Exchange memory exchangeToConfirm = exchanges[debtExchangeIndex];
         removeExchange(debtExchangeIndex);
     }
-    /////////////////////////////////////////////////////////////////////////////////////
 
     function createBinaryContract(address sender, uint amount, address receiver) public {
         address newBinaryContract = new BinaryContract(sender, amount, receiver);
@@ -275,6 +290,104 @@ contract ProfileContract{
     // For testing only!!!!!!!!!
     function removeContracts() public {
         delete contracts;
+    }
+
+    function removeContract(uint index) public {
+        if (index >= contracts.length) return;
+
+        // We run that for loop because the only way to delete
+        // an item in an array is to pop its last index
+        // so we organize the items accordingly
+        for (uint i = index; i < contracts.length - 1; i++){
+            contracts[i] = contracts[i+1];
+        }
+
+        delete contracts[contracts.length - 1];
+        contracts.length--;
+    }
+
+     // I run from other's ProfileContract
+    function addDebtRotationRequestNotRestricted(address mediator, address creditor, address debtor,  uint amount, uint statusAsUint, uint lastDebtRotationRequestIndex) public{
+        // enum DebtRotationStatus{ MediatorAgreed, ReceiverAgreed, SenderAgreed, Done }
+        DebtRotationStatus currentRequestStatus;
+        
+        if (statusAsUint == 0){ // I.e. that is the first debt rotation request (from the Mediator)
+            currentRequestStatus = DebtRotationStatus.MediatorAgreed;
+        }
+        else { // Means that there is a "lastDebtRequest" i.e. either the Creditor or the Debtor agrees
+            Exchange lastExchange = exchanges[lastDebtRotationRequestIndex]; // we receive lastDebtRotationRequestIndex from the client
+            DebtRotationStatus lastRequestStatus = lastExchange.debtRotation.status;
+            
+            // We check how to proceed with the request:
+                // If the creditor is agreeing now and the last status was that the debtor agreed (in the last request),
+                // then it means that they are both agreeing now and we consider that request as Done.
+            
+                // If the creditor is agreeing now and last status was that ONLY the mediator agreed (i.e. the request
+                // was just sent by the mediator), so the new status is now ReceiverAgreed.
+                
+            // It is the same behavior for the debtor.
+            
+            if (statusAsUint == 1){ // I.e. the creditor is currently agreeing
+                if (lastRequestStatus == DebtRotationStatus.SenderAgreed) // which means both have agreed
+                    currentRequestStatus = DebtRotationStatus.Done;
+                else if (lastRequestStatus == DebtRotationStatus.MediatorAgreed) // only the creditor has agreed so far
+                    currentRequestStatus = DebtRotationStatus.ReceiverAgreed;
+                else
+                    require(false); // if not any of them -> throw an exception.
+
+            } else if (statusAsUint == 2){ //I.e. the debtor is agreeing
+                if (lastRequestStatus == DebtRotationStatus.ReceiverAgreed) // which means both have agreed
+                    currentRequestStatus = DebtRotationStatus.Done;
+                else if (lastRequestStatus == DebtRotationStatus.MediatorAgreed){ // only the debtor has agreed so far
+                    currentRequestStatus = DebtRotationStatus.SenderAgreed;
+                }
+                else
+                    require(false); // if not any of them -> throw an exception.
+            } else if (statusAsUint == 3)
+                currentRequestStatus = DebtRotationStatus.Done;
+            else
+                require(false); // if not any of them -> throw an exception.
+            
+        removeExchange(lastDebtRotationRequestIndex);
+        }
+        addExchangeNotRestricted(mediator, debtor,"", ExchangePurpose.DebtRotation, address(0), amount, address(0), creditor, currentRequestStatus);
+    }
+
+    // // I run for my own ProfileContract
+    // function addDebtRotationRequest(address mediator, address debtor, address creditor, uint amount, uint statusAsUint, uint lastDebtRotationRequestIndex) public{
+    //     // // enum DebtRotationStatus{ MediatorAgreed, ReceiverAgreed, SenderAgreed, Done }
+    //     // DebtRotationStatus status;
+    //     // if (statusAsUint == 0) // MediatorAgreed
+    //     //     status = DebtRotationStatus.MediatorAgreed;
+    //     // else if (statusAsUint == 1) // ReceiverAgreed
+    //     //     status = DebtRotationStatus.ReceiverAgreed;
+    //     // else if (statusAsUint == 2) // SenderAgreed
+    //     //     status = DebtRotationStatus.SenderAgreed;
+    //     // else if (statusAsUint == 3) // Done
+    //     //     status = DebtRotationStatus.Done;
+    //     // else
+    //     //     require(false); // If not any of them, throw an exception
+    //     // // addExchange(source=address(0), destination=givenDestination,...)
+    //     // addExchange(address(0), debtor, "", ExchangePurpose.AddDebt, false, address(0), amount, address(0), creditor, status);
+        
+    //     // addDebtRotationRequestNotRestricted(mediator, debtor, creditor, amount, statusAsUint, lastDebtRotationRequestIndex);
+    // }
+
+    // I run for my own ProfileContract
+    function confirmDebtRotationRequest(uint debtExchangeIndex) public{
+        removeExchange(debtExchangeIndex);
+    }
+
+    // I run from other's ProfileContract
+    function confirmDebtRotationRequestNotRestricted(uint debtExchangeIndex, address binContractAddress) public {
+
+        // If we just deployed a binaryContract we send it's address (on App.js), else we send address(0)
+        // To send an address(0) we can use the getZeroAddress I implemented here
+        
+        if (binContractAddress != address(0)){ // it means we just deployed a binContract
+            contracts.push(binContractAddress);
+        }
+        removeExchange(debtExchangeIndex);
     }
 
     //  modifier restricted(){
@@ -329,7 +442,7 @@ contract BinaryContract{
         addTransaction(providedCreditor, amount, providedDebtor);
     }
 
-    function addTransaction (address sender, uint amount, address receiver) public {
+    function addTransaction (address sender, uint amount, address receiver) public ifValid {
         Transaction memory transaction = Transaction({
             from: sender,
             to: receiver,
@@ -342,7 +455,7 @@ contract BinaryContract{
         updateContractDebt(sender, amount, receiver);
     }
 
-    function updateContractDebt (address sender, uint amount, address receiver) public {
+    function updateContractDebt (address sender, uint amount, address receiver) public ifValid {
         if(binContractTransactionsLog.length > 1){ // in the constructor we just pushed the only transaction
             if (currentDebt.debtor != sender){ // means the debtor now in a bigger debt
             currentDebt.amountOwned += amount;
@@ -362,15 +475,22 @@ contract BinaryContract{
         }
     }
 
-    function updateDebtor(address newDebtor) public {
+    function decreaseDebt(uint amountToDecrease) public ifValid {
+        addTransaction (currentDebt.debtor, amountToDecrease, currentDebt.creditor);
+        
+        if (currentDebt.amountOwned == 0)
+               finishContract();
+    }
+
+    function updateDebtor(address newDebtor) public ifValid {
         currentDebt.debtor = newDebtor;
     }
 
-    function updateCreditor(address newCreditor) public {
+    function updateCreditor(address newCreditor) public ifValid {
         currentDebt.creditor = newCreditor;
     }
 
-    function getCurrentDebtorAddress() public view returns(address){
+    function getCurrentDebtorAddress() public view ifValid returns(address){
         return currentDebt.debtor;
     }
 
@@ -379,7 +499,7 @@ contract BinaryContract{
     ////     //return currentDebt.debtor name
     //// }
 
-    function getCurrentCreditorAddress() public view returns(address){
+    function getCurrentCreditorAddress() public view ifValid returns(address){
         return currentDebt.creditor;
     }
 
@@ -388,22 +508,23 @@ contract BinaryContract{
     ////     //return currentDebt.creditor name
     //// }
 
-    function getCurrentDebtAmount() public view returns(uint){
+    function getCurrentDebtAmount() public view ifValid returns(uint){
         return currentDebt.amountOwned;
     }
 
-    function getCurrentDebt() public view returns(ContractDebt){
+    function getCurrentDebt() public view ifValid returns(ContractDebt){
         return currentDebt;
     }
 
-    function getAllTransations() public view returns (Transaction[] memory){
+    function getAllTransations() public view ifValid returns (Transaction[] memory){
         return binContractTransactionsLog;
     }
 
+    function finishContract() public ifValid{
+        isValid = false;
+    }
+
     modifier ifValid(){
-        if (block.timestamp > creationDate + validityInDays * 1 days){
-            isValid = false;
-        }
         require(isValid);
         _;
     }

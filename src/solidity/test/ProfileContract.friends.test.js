@@ -98,7 +98,7 @@ describe('ProfileContracts friends scenario methods tests', () => {
 });
 
 function assertFriendRequest(requestWrapper, source, destination) {
-    assertRequest(requestWrapper, source, destination, "addFriendRequest", RequestPurpose['AddFriend']);
+    assertRequest(requestWrapper, source, destination, RequestPurpose['AddFriend']);
 }
 
 async function sendFriendRequestsFromLeftToRight(sourceProfileContract, destinationProfileContract) {

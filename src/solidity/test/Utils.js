@@ -8,17 +8,15 @@ exports.RequestPurpose = {
     DebtRotation: "2"
 };
 
-exports.assertRequest = (requestWrapper, source, destination, optionalDescription, requestPurpose, transactionFrom, transactionTo, transactionAmount) => {
+exports.assertRequest = (requestWrapper, source, destination, requestPurpose, transactionFrom, transactionTo, transactionAmount) => {
     let request = requestWrapper[0];
     let requestDetails = request.exchangeDetails;
     assert.ok(requestDetails.exchangeId > 0, "A wrong requestId was assigned to the request.");
     assert.strictEqual(source, requestDetails.source, "A wrong source was assigned to the request.");
     assert.strictEqual(destination, requestDetails.destination, "A wrong destination was assigned to the request.");
-    assert.strictEqual(optionalDescription, requestDetails.optionalDescription, "A wrong optionalDescription was assigned to the request.");
     assert.ok(Date.now() > requestDetails.creationDate, "A wrong creationDate was assigned to the request.");
 
     assert.strictEqual(requestPurpose, request.exchangePurpose, "A wrong requestPurpose was assigned to the request.");
-    assert.strictEqual(false, request.isApproved, "A wrong isApproved was assigned to the request.");
     if (transactionFrom != null) {
         assert.strictEqual(transactionFrom, request.transaction.from, "A wrong transactionFrom was assigned to the request.");
         assert.strictEqual(transactionTo, request.transaction.to, "A wrong transactionTo was assigned to the request.");

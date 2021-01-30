@@ -36,7 +36,7 @@ contract BinaryContract{
         addTransaction(providedCreditor, amount, providedDebtor);
     }
 
-    function addTransaction (address sender, uint amount, address receiver) public {
+    function addTransaction (address sender, uint amount, address receiver) public ifValid {
         Transaction memory transaction = Transaction({
             from: sender,
             to: receiver,
@@ -49,7 +49,7 @@ contract BinaryContract{
         updateContractDebt(sender, amount, receiver);
     }
 
-    function updateContractDebt (address sender, uint amount, address receiver) public {
+    function updateContractDebt (address sender, uint amount, address receiver) public ifValid {
         if(binContractTransactionsLog.length > 1){ // in the constructor we just pushed the only transaction
             if (currentDebt.debtor != sender){ // means the debtor now in a bigger debt
             currentDebt.amountOwned += amount;
@@ -69,15 +69,22 @@ contract BinaryContract{
         }
     }
 
-    function updateDebtor(address newDebtor) public {
+    function decreaseDebt(uint amountToDecrease) public ifValid {
+        addTransaction (currentDebt.debtor, amountToDecrease, currentDebt.creditor);
+        
+        if (currentDebt.amountOwned == 0)
+               finishContract();
+    }
+
+    function updateDebtor(address newDebtor) public ifValid {
         currentDebt.debtor = newDebtor;
     }
 
-    function updateCreditor(address newCreditor) public {
+    function updateCreditor(address newCreditor) public ifValid {
         currentDebt.creditor = newCreditor;
     }
 
-    function getCurrentDebtorAddress() public view returns(address){
+    function getCurrentDebtorAddress() public view ifValid returns(address){
         return currentDebt.debtor;
     }
 
@@ -86,7 +93,7 @@ contract BinaryContract{
     ////     //return currentDebt.debtor name
     //// }
 
-    function getCurrentCreditorAddress() public view returns(address){
+    function getCurrentCreditorAddress() public view ifValid returns(address){
         return currentDebt.creditor;
     }
 
@@ -95,22 +102,23 @@ contract BinaryContract{
     ////     //return currentDebt.creditor name
     //// }
 
-    function getCurrentDebtAmount() public view returns(uint){
+    function getCurrentDebtAmount() public view ifValid returns(uint){
         return currentDebt.amountOwned;
     }
 
-    function getCurrentDebt() public view returns(ContractDebt){
+    function getCurrentDebt() public view ifValid returns(ContractDebt){
         return currentDebt;
     }
 
-    function getAllTransations() public view returns (Transaction[] memory){
+    function getAllTransations() public view ifValid returns (Transaction[] memory){
         return binContractTransactionsLog;
     }
 
+    function finishContract() public ifValid{
+        isValid = false;
+    }
+
     modifier ifValid(){
-        if (block.timestamp > creationDate + validityInDays * 1 days){
-            isValid = false;
-        }
         require(isValid);
         _;
     }

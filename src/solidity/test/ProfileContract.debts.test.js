@@ -153,7 +153,7 @@ async function getContractReferenceInstance(compiledContract, address) {
 }
 
 function assertDebtRequest(requestWrapper, source, destination, transactionFrom, transactionTo, transactionAmount) {
-    assertRequest(requestWrapper, source, destination, "addDebtRequest", RequestPurpose['AddDebt'], transactionFrom, transactionTo, transactionAmount);
+    assertRequest(requestWrapper, source, destination, RequestPurpose['AddDebt'], transactionFrom, transactionTo, transactionAmount);
 }
 
 async function sendDebtRequestsFromLeftToRight(profileContractA, amountToPass, profileContractB) {
