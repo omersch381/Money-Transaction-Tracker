@@ -79,6 +79,8 @@ describe('ProfileContracts friends scenario methods tests', () => {
 
             assert.strictEqual(getAddress(profileContractB), friendsOfA[0].friendAddress, "B is not on A's friends list in index 0");
             assert.strictEqual(getAddress(profileContractA), friendsOfB[0].friendAddress, "A is not on B's friends list in index 0");
+            assert.strictEqual(await getName(profileContractB), friendsOfA[0].friendName, "B is not on A's friends list in index 0");
+            assert.strictEqual(await getName(profileContractA), friendsOfB[0].friendName, "B is not on A's friends list in index 0");
 
             // removing all their friends
             await profileContractA.methods.removeAllFriends()
