@@ -5,8 +5,6 @@ contract ProfileContract{
 
     enum ExchangePurpose{ AddFriend, AddDebt, DebtRotation }
 
-    // WE SHOULD ASK THE USER WHAT IS THEIR NAME AND USE IT AS SOURCE_NAME
-
     struct ExchangeDetails {
         uint exchangeId;
         address source;
