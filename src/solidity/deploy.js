@@ -3,6 +3,8 @@ const Web3 = require('web3');
 
 // const compiledProfile = require('./build/ProfileContract.json');
 
+const profileContractName = 'test_name';
+
 const {
     interface,
     bytecode
@@ -24,6 +26,7 @@ const deploy = async () => {
     const result = await new web3.eth.Contract(JSON.parse(interface))
         .deploy({
             data: bytecode,
+            arguments: [profileContractName],
         })
         .send({
             gas: '4000000',
