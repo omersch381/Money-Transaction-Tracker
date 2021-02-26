@@ -6,6 +6,7 @@ const { assertRequest, getAddress, RequestPurpose, compiledBinaryContract } = re
 
 const compiledProfileContract = require('../build/ProfileContract.json');
 const { exception } = require('console');
+const { maxHeaderSize } = require('http');
 
 var debtRotationStatus = {
     MediatorAgreed: "0",
@@ -240,6 +241,38 @@ describe('ProfileContracts debt rotation API methods tests', () => {
         assert.strictEqual(String(amountToRotateForThisTest), rotatedAmount);
 
     }).timeout(15000);
+
+    it('test debt rotation options per profileContract', async () => {
+        /**
+         * Tests that debt rotation contacts options works properly.
+        */
+
+        // Generating actors
+        let debtors = [await deployAProfileContract('debtorA'),
+        await deployAProfileContract('debtorB'), await deployAProfileContract('debtorC'),
+        await deployAProfileContract('debtorD'), await deployAProfileContract('debtorE')];
+
+        let mediator = await deployAProfileContract('mediator');
+
+        let creditors = [await deployAProfileContract('creditorA'),
+        await deployAProfileContract('creditorB'), await deployAProfileContract('creditorC'),
+        await deployAProfileContract('creditorD'), await deployAProfileContract('creditorE')];
+
+        // Creating debts
+        for (const [i, debtor] of debtors.entries()) {
+            await confirmDebtFromLeftToRight(debtor, 2 * i, mediator);
+        };
+
+        for (const [i, creditor] of creditors.entries()) {
+            await confirmDebtFromLeftToRight(mediator, 2 * i, creditor);
+        };
+
+        let mediatorDebtRotationOptions = await getDebtRotationOptionsFor(mediator);
+
+        assert.strictEqual(8, getDebtRotationOption(mediatorDebtRotationOptions, getAddress(debtors[4]), getAddress(creditors[4])));
+        assert.strictEqual(6, getDebtRotationOption(mediatorDebtRotationOptions, getAddress(debtors[3]), getAddress(creditors[3])));
+
+    }).timeout(10000);
 });
 
 /***********************************************************************************************/
@@ -563,6 +596,76 @@ async function removeInvalidContractFrom(listOfProfiles, contractToRemoveAddress
                 await currentProfile.methods.removeContract(index).send({ from: accounts[0], gas: "1000000" });
         }
     }
+}
+
+async function getDebtRotationOptionsFor(profileContractMediator) {
+    /**
+     * Gets the debt rotation options for a profileContract.
+     * 
+     * Returns the options as a list of "CurrentDebt".
+     * I.e. 
+     * [
+            {
+                debtor: '0x9d28e2B6659B2FC72F31E62f918C773812627229',
+                creditor: '0xEd1Ed07Cd39D2a6a39411d84f742C176E97b2996',
+                amount: 6
+            },{
+                debtor: '0x172acf27f7Ddf08CE196810CbcEcd6879f0f614B',
+                creditor: '0x575BBE81508e73f37b18120D469E4B1Db4De41e2',
+                amount: 8
+            },
+        ]
+
+        That list means the Mediator owes 6 to first Creditor and first Debtor owes 6 to Mediator.
+        Same for the second one, but with 8.
+    */
+
+    let debtsOfMediator = [];
+    let creditsOfMediator = [];
+
+    let binaryContractAddresses = await profileContractMediator.methods.getContracts().call();
+    assert(binaryContractAddresses.length > 0, 'Mediator did not have any binary contract');
+    for (const contractAddress of binaryContractAddresses) {
+        const contract = getContractReferenceInstance(compiledBinaryContract, contractAddress);
+        let currentDebt = await contract.methods.getCurrentDebt().call();
+        if (currentDebt.debtor !== getAddress(profileContractMediator)) // Mediator is the creditor
+            creditsOfMediator.push(currentDebt); // people who owe money to the Mediator
+        else
+            debtsOfMediator.push(currentDebt); // people who the Mediator owes money to
+    }
+
+    rv = [];
+    for (const currentDebtForMediator of creditsOfMediator) // for each person who owes money to Mediator
+        for (const currentDebtAgainstMediator of debtsOfMediator) // for each person who the Mediator owes money to 
+            rv.push(
+                {
+                    debtor: currentDebtForMediator.debtor,
+                    creditor: currentDebtAgainstMediator.creditor,
+                    amount: Math.min(currentDebtForMediator.amountOwned, currentDebtAgainstMediator.amountOwned),
+                }
+            );
+
+    return rv;
+}
+
+function getDebtRotationOption(arrayOfOptions, senderAddress, receiverAddress) {
+    /**
+     * Gets the debt rotation amount between senderAddress, and receiverAddress.
+    */
+
+    return arrayOfOptions.filter(({ debtor, creditor }) =>
+        creditor == senderAddress && debtor == receiverAddress
+    )[0].amount;
+}
+
+function compare(a, b) {
+    if (a.amount < b.amount) return 1;
+    if (b.amount < a.amount) return -1;
+    return 0;
+}
+
+function getXBiggestDebtRotationOptions(arrayOfOptions, X) {
+    return arrayOfOptions.sort(compare).slice(0, X);
 }
 
 /***********************************************************************************************/
