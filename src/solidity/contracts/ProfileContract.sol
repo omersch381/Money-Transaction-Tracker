@@ -100,6 +100,10 @@ contract ProfileContract{
         return exchanges;
     }
 
+    function getAllExchangesByIndex(uint index) external view returns (Exchange memory){
+        return exchanges[index];
+    }
+
     function getExchangeUniqueId() public returns (uint){
         exchangeNum += 1;
         return exchangeNum;
@@ -219,6 +223,10 @@ contract ProfileContract{
         return friendsArray;
     }
 
+    function getFriendsByIndex(uint index) public view returns (Friend memory) {
+        return friendsArray[index];
+    }
+
     function getFriendName(address friendAddress) public returns (string memory name) {
         string memory friendsName = "not found";
         for (uint i=0; i<friendsArray.length; i++)
@@ -285,6 +293,10 @@ contract ProfileContract{
 
     function getContracts() public view returns (address[] memory){
         return contracts;
+    }
+
+    function getContractsByIndex(uint index) public view returns (address memory){
+        return contracts[index];
     }
 
     // For testing only!!!!!!!!!
