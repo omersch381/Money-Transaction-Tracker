@@ -1,3 +1,9 @@
+var firebase = require("firebase/app");
+require('firebase/database');
+const { firebaseConfig } = require('../firebaseConfig');
+firebase.initializeApp(firebaseConfig);
+var database = firebase.database();
+
 const assert = require('assert');
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
@@ -47,7 +53,40 @@ beforeEach(async () => {
     profileContractReceiver = await deployAProfileContract(profileContractReceiverName);
 });
 
+function writeUserData(phoneNumber, name, address) {
+    database.ref('users/' + phoneNumber).set({
+        username: name,
+        contractAddress: address,
+    }).then(() => database.goOffline());
+}
+
+async function readUserData(phoneNumber) {
+    var address;
+    await database.ref().child("users").child(phoneNumber).get().then(function (snapshot) {
+        if (snapshot.exists()) {
+            address = snapshot.val();
+        }
+        else {
+            address = -1;
+        }
+    }).catch(function (error) {
+        address = -1;
+    }).then(() => database.goOffline());
+    return address;
+}
+
+async function getAddressFromPhoneNumber(phoneNumber) {
+    var address = await readUserData(phoneNumber);
+    assert.notStrictEqual(-1, address, "The address was not found!");
+    return address.contractAddress;
+}
+
 describe('ProfileContracts debt rotation API methods tests', () => {
+
+    it('test firebase', async () => {
+        writeUserData(1, "Omer", 123);
+        assert.strictEqual(123, await getAddressFromPhoneNumber(1));
+    });
 
     it('test debt rotation requests API', async () => {
 

@@ -100,6 +100,10 @@ contract ProfileContract{
         return exchanges;
     }
 
+    function getAllExchangesByIndex(uint index) external view returns (Exchange memory){
+        return exchanges[index];
+    }
+
     function getExchangeUniqueId() public returns (uint){
         exchangeNum += 1;
         return exchangeNum;
